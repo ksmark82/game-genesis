@@ -1,0 +1,393 @@
+<title>서풍의 광시곡 지도첩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: 던전 탐색용 지도첩 — 왼쪽은 검색과 지도 목록, 오른쪽은 지도 원본을 크게 보는 뷰어. 좁은 화면에선 위아래로 쌓인다. 게임 지도가 검은 바탕이라 어두운 한 가지 모습으로만 간다. */
+:root {
+  --ink: #0b0f17;
+  --panel: #121926;
+  --line: #243149;
+  --text: #e9e2d0;
+  --muted: #95a0b5;
+  --gold: #e2c27a;
+  --gold-dim: #9c8556;
+  --pin: #ff6b4a;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", "Batang", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ink); color: var(--text); }
+body { font-family: var(--font-ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 36px; display: grid; gap: 16px; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 24px; }
+h1 { font-family: var(--font-display); font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0; letter-spacing: .03em; text-wrap: balance; }
+.sub { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.note { font-size: 13px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; max-width: 46ch; }
+.note b { color: var(--gold); font-weight: 600; }
+
+.main { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+aside { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+@media (min-width: 901px) { aside { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: hidden; grid-template-rows: auto minmax(0, 1fr); } }
+.search { position: relative; }
+.search svg { position: absolute; left: 12px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--gold); pointer-events: none; }
+#q { width: 100%; font: 400 15px/1 var(--font-ui); color: var(--text); background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 12px 36px 12px 38px; }
+#q::placeholder { color: var(--muted); }
+#q:focus { outline: none; border-color: var(--gold-dim); box-shadow: 0 0 0 3px rgba(226, 194, 122, .18); }
+#qclear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; border-radius: 4px; }
+
+.list { overflow-y: auto; min-height: 0; display: grid; gap: 14px; align-content: start; padding-right: 2px; }
+@media (max-width: 900px) { .list { max-height: 46vh; } }
+.group h2 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .08em; }
+.group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.item { width: 100%; text-align: left; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; background: none; border: 0; border-radius: 5px; padding: 7px 8px; color: var(--text); font: inherit; cursor: pointer; }
+.item:hover { background: rgba(226, 194, 122, .08); }
+.item[aria-current="true"] { background: rgba(226, 194, 122, .16); }
+.item .t { font-weight: 500; min-width: 0; }
+.item .t mark { background: none; color: var(--gold); }
+.item .m { font-size: 12px; color: var(--muted); grid-column: 1 / -1; min-width: 0; }
+.item .k { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+
+.viewer { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; display: grid; min-width: 0; overflow: hidden; }
+.vhead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.vtitle { display: grid; gap: 2px; min-width: 0; }
+.vtitle h2 { font-family: var(--font-display); font-size: 24px; margin: 0; line-height: 1.2; text-wrap: balance; }
+.vtitle span { font-size: 13px; color: var(--muted); }
+.vtitle .src { font-size: 12px; color: var(--muted); }
+.vtitle .src a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+.tools { display: flex; gap: 6px; }
+.tools button { min-width: 36px; height: 34px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--ink); color: var(--text); font: 500 15px/1 var(--font-ui); cursor: pointer; }
+.tools button:hover { border-color: var(--gold-dim); }
+.stage { position: relative; overflow: auto; height: min(78vh, 900px); background: #000; cursor: grab; touch-action: pan-x pan-y; }
+.stage.drag { cursor: grabbing; }
+.canvas { position: relative; margin: 0 auto; }
+.canvas img { display: block; width: 100%; height: auto; max-width: none; user-select: none; -webkit-user-drag: none; }
+.spot { position: absolute; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; cursor: pointer; }
+.spot:hover, .spot:focus-visible { outline: 2px solid var(--gold); outline-offset: 0; }
+.pin { position: absolute; transform: translate(-50%, -50%); pointer-events: none; }
+.pin i { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid var(--pin); animation: ring 1.4s ease-out infinite; }
+.pin i:nth-child(2) { animation-delay: .45s; }
+.pin b { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--pin); box-shadow: 0 0 0 2px #000; }
+@keyframes ring { from { transform: scale(.6); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pin i { animation: none; opacity: .9; } .pin i:nth-child(2) { display: none; } }
+
+.links { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.links span { font-size: 12px; color: var(--muted); align-self: center; margin-right: 4px; }
+.chip { font: 400 13px/1 var(--font-ui); color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; cursor: pointer; }
+.chip:hover { border-color: var(--gold-dim); }
+.chip.go::after { content: " →"; color: var(--gold); }
+.chip[aria-pressed="true"] { border-color: var(--pin); color: #fff; }
+.itext { padding-top: 8px; }
+.tx { font: 400 12px/1.3 var(--font-ui); color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: 4px; padding: 5px 8px; cursor: pointer; text-align: left; }
+.tx:hover { color: var(--text); border-color: var(--gold-dim); }
+.tx[aria-pressed="true"] { border-style: solid; border-color: var(--pin); color: #fff; }
+
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; max-width: 90ch; }
+footer a { color: var(--gold); }
+button:focus-visible, .item:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>서풍의 광시곡 지도첩</h1>
+      <p class="sub">던전·숲·산·저택 지도 46장을 한곳에 모았습니다. 지명을 검색하면 그 지명이 적힌 지도를 열고 자리를 짚어 줍니다. 지도 그림 속에 적힌 글자(#1로, 워프 안내 같은 것까지)도 모두 글자로 옮겨 두어서 함께 검색됩니다.</p>
+    </div>
+    <p class="note"><b>스포일러 주의</b> 지도 그림에는 나중에 가게 될 장소와 이벤트 이름도 적혀 있습니다.</p>
+  </header>
+
+  <div class="main">
+    <aside>
+      <div class="search">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="지명 찾기 (예: 라몬, ㄹㅂㄹㅂ, 멸살지옥검)" autocomplete="off" spellcheck="false" aria-label="지명 검색">
+        <button id="qclear" aria-label="검색어 지우기" hidden>×</button>
+      </div>
+      <div class="list" id="list" aria-live="polite"></div>
+    </aside>
+
+    <section class="viewer" aria-label="지도 보기">
+      <div class="vhead">
+        <div class="vtitle"><h2 id="vt"></h2><span id="vs"></span><div class="src" id="vsrc"></div></div>
+        <div class="tools">
+          <button id="zout" aria-label="축소">−</button>
+          <button id="zfit" aria-label="화면에 맞추기">맞춤</button>
+          <button id="zin" aria-label="확대">+</button>
+        </div>
+      </div>
+      <div class="stage" id="stage"><div class="canvas" id="canvas"><img id="img" alt=""></div></div>
+      <div class="links" id="links"></div>
+      <div class="links itext" id="itext"></div>
+    </section>
+  </div>
+
+  <footer>
+    <div>지도 원본: 서풍의 광시곡 공식 홈페이지(2007년 보관본) 다운로드 자료, 디시인사이드 창세기전 갤러리 <a href="https://gall.dcinside.com/mgallery/board/view/?id=warofgenesis&amp;no=99669" target="_blank" rel="noopener">「서풍의 광시곡 모든 맵」</a> 글에서 모음. 해적키드의 동굴 가는 길은 네이버 블로그 My Wind is High의 <a href="https://m.blog.naver.com/fireblow/10014241209" target="_blank" rel="noopener">「서풍의 광시곡 공략 - 니코시아 지방으로...(1)」</a> 글의 그림.</div>
+    <div>지명 위치는 지도 그림에 적힌 글자 자리를 눈으로 보고 찍은 것이라 조금 어긋날 수 있습니다. 표기가 섞인 지명(리브레빌/리브레벨, 로우엔/로웬, 드래건/드래곤, 던전/던젼)은 어느 쪽으로 찾아도 나옵니다.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+// 지도 데이터: 위치(x, y)는 원본 그림 기준 %. go는 그 지명이 이어지는 다른 지도.
+const G = { op: "드래곤스트라이크 작전", field: "필드", dungeon: "던전·동굴", forest: "숲", inside: "건물 안", mount: "산" };
+const MAPS = [
+  { id: "01", t: "트리시스 사막", g: "field", L: [["트리시스 사막", 19, 26]] },
+  { id: "02", t: "드래건 브레스 산맥 1/3", g: "op", L: [["드래건 브레스 산맥 2/3로", 74, 24, "03"]] },
+  { id: "03", t: "드래건 브레스 산맥 2/3", g: "op", L: [["드래건 브레스 산맥 1/3로", 11, 46, "02"], ["미로숲", 71, 54, "05"]] },
+  { id: "04", t: "드래건 브레스 산맥 3/3", g: "op", L: [["비프로스트군 병참기지", 28, 75], ["미로숲", 12, 94, "05"], ["드래건 브레스 산맥 동굴", 86, 46]] },
+  { id: "05", t: "미로숲", g: "op", L: [["비프로스트군 병참기지", 90, 23], ["드래건 브레스 산맥 2/3", 17, 94, "03"]] },
+  { id: "06", t: "화룡굴", g: "dungeon", L: [["화룡굴", 75, 89], ["EXIT (출구)", 66, 78]] },
+  { id: "07", t: "피닉스 동굴", g: "dungeon", L: [["피닉스 동굴", 58, 81], ["동굴 외부", 12, 90, "40"]] },
+  { id: "08", t: "로우엔 던전", g: "dungeon", L: [["로우엔 던전", 12, 25], ["유성검", 37, 12], ["상점", 95, 50], ["드래건 버스터", 9, 64], ["로우엔 산", 27, 91, "42"]] },
+  { id: "09", t: "폭풍도 동굴", g: "dungeon", L: [["폭풍도 정상", 25, 5, "44"], ["폭풍도 숲", 84, 91, "23"]] },
+  { id: "10", t: "썬더메어 동굴 (리브레빌 투기장 지하)", g: "dungeon", L: [["썬더메어 동굴 · 리브레빌 투기장 지하", 22, 13], ["START (입구)", 21, 98]] },
+  { id: "11", t: "유니콘의 던전", g: "dungeon", L: [["유니콘의 던전", 14, 18], ["일각수의 뿔", 69, 11]] },
+  { id: "12", t: "롱기누스창 동굴 (제피르 팰컨 기지 지하)", g: "dungeon", L: [["롱기누스창 동굴 · 제피르 팰컨 기지 지하", 36, 22], ["기지로", 10, 75, "45"]] },
+  { id: "13", t: "수중도시로 가는 던전 1/2", g: "dungeon", L: [["숲에서", 47, 96]] },
+  { id: "14", t: "수중도시로 가는 던전 2/2", g: "dungeon", L: [["수중도시", 84, 42]] },
+  { id: "15", t: "인페르노 1/2", g: "dungeon", L: [["인페르노의 무덤", 80, 10], ["인페르노 외부", 43, 52], ["막혀 있음", 65, 68]] },
+  { id: "16", t: "인페르노 2/2", g: "dungeon", L: [["봉인된 데이모스", 82, 10], ["막혀 있음", 47, 95]] },
+  { id: "17", t: "게이시르 숲 1", g: "forest", L: [["게이시르 시티", 30, 3], ["화룡의 굴", 14, 10, "06"], ["니코시아 마을", 79, 16], ["교회 요새 근방 (임무 수령 시)", 93, 24, "46"], ["2번으로 계속", 45, 45, "18"], ["멤피스 마을", 72, 68], ["멤피스 영주 저택", 80, 71, "32"]] },
+  { id: "18", t: "게이시르 숲 2", g: "forest", L: [["로우엔 지방", 13, 62, "42"], ["1번에서 계속", 82, 93, "17"]] },
+  { id: "19", t: "카라카스 숲", g: "forest", L: [["카라카스 마을", 59, 8], ["리브레빌 지방", 53, 32, "20"], ["트리시스 사막", 90, 47, "01"], ["프리토리아 지방", 9, 58, "40"], ["게이시르 시티", 37, 94], ["파로 마을", 88, 79]] },
+  { id: "20", t: "리브레빌 지방", g: "forest", L: [["에스테도데 영주 저택", 59, 10], ["리브레빌 시", 63, 38], ["안타나나리보 지방", 91, 40, "36"], ["카라카스 숲", 7, 83, "19"]] },
+  { id: "21", t: "마검숲", g: "forest", L: [["보르도 영주의 저택", 47, 2.5, "30"], ["보르도 마을", 45, 28], ["칼스의 검: 멸살지옥검", 85, 28], ["로우엔 시티", 21, 90, "22"]] },
+  { id: "22", t: "로우엔 숲", g: "forest", L: [["마검의 숲", 38, 6, "21"], ["프레데릭 저택", 23, 36], ["로우엔 시티", 8, 72], ["로우엔 산", 78, 18], ["반란군의 마을", 90, 57]] },
+  { id: "23", t: "폭풍도 해변 & 숲", g: "forest", L: [["폭풍도 동굴", 10, 9, "09"], ["이올린 집", 89, 64]] },
+  { id: "24", t: "게이시르 교회 내부", g: "inside", L: [["게이시르 교회 내부 · 대성당", 66, 82]] },
+  { id: "25", t: "게이시르 교회 지하", g: "inside", L: [["교회에서", 69, 15, "24"]] },
+  { id: "26", t: "라몬 자작 저택 1층", g: "inside", L: [["저택 2층 #1", 10, 2, "27"], ["저택 2층 #2", 56, 5, "27"], ["저택 외부", 52, 59], ["영주가 있는 곳", 88, 77], ["에스메랄다가 고문받고 있는 곳", 68, 82]] },
+  { id: "27", t: "라몬 자작 저택 2층", g: "inside", L: [["1층으로 #1", 14, 20, "26"], ["1층으로 #2", 78, 16, "26"], ["비밀통로", 70, 83]] },
+  { id: "28", t: "안타나나리보 저택 1/2", g: "inside", L: [["스위치", 47, 77], ["2/2로 (스위치를 누르면 열림)", 88, 37, "29"]] },
+  { id: "29", t: "안타나나리보 저택 2/2", g: "inside", L: [["1/2로", 20, 18, "28"], ["숨겨진 방", 77, 87]] },
+  { id: "30", t: "보르도 영주의 저택 내부", g: "inside", L: [["영주가 있는 곳", 64, 14], ["저택 외부", 90, 84, "21"]] },
+  { id: "31", t: "교회 요새 내부", g: "inside", L: [["마장기와의 전투", 54, 9], ["크리스와 이벤트", 85, 65], ["교회 바깥", 55, 83, "46"]] },
+  { id: "32", t: "멤피스 영주 저택", g: "inside", L: [["외부", 16, 81, "17"]] },
+  { id: "33", t: "루벤 저택 2층", g: "inside", L: [["#1 (1층으로)", 41, 16, "34"]] },
+  { id: "34", t: "루벤 저택 1층", g: "inside", L: [["#1 (2층으로)", 59, 9, "33"], ["지하에서", 11, 65, "35"]] },
+  { id: "35", t: "루벤 저택 지하수로", g: "inside", L: [["카라카스 마을에서", 15, 4, "19"], ["루벤 저택 내부로", 55, 78, "34"]] },
+  { id: "36", t: "안타나나리보 지방", g: "mount", L: [["안타나나리보 마을", 47, 5], ["안타나나리보 요새 · 망티고아산 방면", 70, 15, "39"], ["리브레빌 지방", 67, 94, "20"]] },
+  { id: "38", t: "망티고아산 동부", g: "mount", L: [["망티고아산 동부", 60, 12]] },
+  { id: "39", t: "망티고아산 서부", g: "mount", L: [["카타리나와 전투", 27, 6.5], ["망티고아 동굴", 27, 46], ["막혀 있음", 89, 57], ["안타나나리보 마을", 17, 74]] },
+  { id: "40", t: "프리토리아 산 1/2", g: "mount", L: [["피닉스 동굴 입구", 20, 17, "07"], ["2/2로", 95, 60, "41"], ["드래건 브레스 산맥 남단", 8, 75, "45"], ["프리토리아 마을", 48, 87]] },
+  { id: "41", t: "프리토리아 산 2/2", g: "mount", L: [["1/2로", 8, 62, "40"], ["카라카스 숲", 85, 95, "19"]] },
+  { id: "42", t: "로우엔 지방", g: "mount", L: [["로우엔 던전", 52, 6, "08"], ["로우엔 숲", 5, 57, "22"], ["게이시르 숲", 96, 73, "18"]] },
+  { id: "43", t: "남 드래건 브레스 산맥", g: "mount", L: [["인페르노 내부로", 90, 8, "15"], ["에스테도데 저택에서", 6, 50, "20"]] },
+  { id: "44", t: "폭풍도 정상", g: "mount", L: [["아수라 검이 있는 곳", 74, 11], ["폭풍도 던전", 17, 77, "09"]] },
+  { id: "45", t: "드래건 브레스 산맥 남단", g: "mount", L: [["해적키드의 동굴", 14, 23, "47"], ["제피르 팰컨 기지", 33, 10, "12"], ["드래건 브레스 산맥 (막혀 있음)", 85, 15], ["프리토리아 산", 93, 85, "40"]] },
+  { id: "46", t: "니코시아 교회 근처", g: "mount", L: [["교회 내부로", 44, 9, "31"], ["니코시아 마을", 46, 76, "17"]] },
+  { id: "47", t: "해적키드의 동굴 가는 길", g: "dungeon", L: [["해적키드의 동굴", 17, 40], ["제피르 팰컨 입구 (시작)", 17, 18], ["드래건 브레스 산맥 방향", 79, 8], ["이쪽으로 나간다", 85, 78], ["드래건 브레스 산맥 남단 지도", 50, 95, "45"]] },
+];
+// 지도 그림 안에 적힌 글자 전부 — 그림에 적힌 그대로(오타·띄어쓰기 포함) 옮김. 위치는 원본 그림 기준 %.
+const TEXT = {
+  "01": [["트리시스 사막", 19, 26]],
+  "02": [["드래건 브레스 산맥 2/3로", 74, 24], ["드래건 브레스 산맥 1/3", 26, 85]],
+  "03": [["드래건 브레스 산맥 1/3로", 11, 46], ["미로숲", 71, 54], ["드래건 브레스 산맥 2/3", 51, 89]],
+  "04": [["드래건 브레스 산맥 동굴", 86, 46], ["비프로스트군 병참기지", 28, 75], ["미로숲", 12, 94], ["드래건 브레스 산맥 3/3", 65, 94]],
+  "05": [["#2로", 25, 19], ["#1로", 8, 27], ["#2", 17, 38], ["#3", 28, 40], ["#1", 11, 60], ["#5", 48, 60], ["#4", 40, 69], ["#3로", 46, 79], ["#1로", 56, 24], ["#1로", 68, 37], ["#5로", 78, 24], ["비프로스트군 병참기지", 90, 23], ["#3로", 91, 43], ["#4로", 73, 67], ["드래건 브레스 산맥 2/3", 17, 94], ["미로숲", 85, 92]],
+  "06": [["-2-", 23, 10], ["-1-", 40, 11], ["-1-", 57, 9], ["EXIT", 66, 78], ["-2-", 76, 81], ["-1-", 20, 89], ["화룡굴", 75, 89]],
+  "07": [["피닉스 동굴", 58, 81], ["동굴외부", 12, 90]],
+  "08": [["유성검", 37, 12], ["로우엔던젼", 12, 25], ["상점", 95, 50], ["드래건 버스터", 9, 64], ["로우엔산", 27, 91]],
+  "09": [["폭풍도정상", 25, 5], ["폭풍도동굴", 31, 82], ["폭풍도숲", 84, 91]],
+  "10": [["썬더메어 동굴 (리브레벨 투기장지하)", 22, 13], ["START", 21, 98]],
+  "11": [["유니콘의 던젼", 14, 18], ["이곳에서 일각수의 뿔을 얻을 수 있다.", 69, 11]],
+  "12": [["롱기누스창 동굴 (제피르팰컨 기지지하)", 36, 22], ["기지로", 10, 75]],
+  "13": [["#4", 80, 22], ["#1", 4, 33], ["#2", 92, 58], ["수중도시로 가는던젼 1/2", 72, 88], ["숲에서", 47, 96]],
+  "14": [["#3", 42, 42], ["수중도시", 84, 42], ["#4", 11, 57], ["#1", 86, 67], ["#2", 86, 86], ["#3", 60, 95], ["수중도시로 가는던젼 2/2", 28, 92]],
+  "15": [["인페르노의 무덤", 80, 10], ["인페르노외부", 43, 52], ["막혀있음", 65, 68]],
+  "16": [["봉인된 데이모스", 82, 10], ["막혀있음", 47, 95]],
+  "17": [["게이시르시티", 30, 3], ["게이시르숲 1", 70, 7], ["화룡의 굴", 14, 10], ["니코시아마을", 79, 16], ["교회요새근방 (임무수령시)", 93, 24], ["2번으로 계속", 45, 45], ["멤피스마을", 72, 68], ["멤피스 영주저택", 80, 71]],
+  "18": [["게이시르숲 2", 32, 18], ["로우엔지방", 13, 62], ["1번에서 계속", 82, 93]],
+  "19": [["카라카스 마을", 59, 8], ["카라카스 숲", 22, 33], ["리브레벨 지방", 53, 32], ["트리시스 사막", 90, 47], ["프리토리아 지방", 9, 58], ["파로 마을", 88, 79], ["게이시르 시티", 37, 94]],
+  "20": [["에스테도데 영주저택", 59, 10], ["리브레벨지방", 19, 24], ["리브레벨시", 63, 38], ["안타나나리보 지방", 91, 40], ["카라카스숲", 7, 83]],
+  "21": [["보르도 영주의 저택", 47, 2.5], ["검 입수후 나가면 A로 워프됨", 85, 24], ["보르도 마을", 45, 28], ["칼스의검:멸살지옥검", 85, 28], ["A", 37, 61], ["마검숲", 84, 87], ["로웬시티", 21, 90]],
+  "22": [["마검의 숲", 38, 6], ["로우엔산", 78, 18], ["프레데릭저택", 23, 36], ["로우엔숲", 86, 38], ["반란군의 마을", 90, 57], ["로우엔 시티", 8, 72]],
+  "23": [["폭풍도동굴", 10, 9], ["폭풍도해변 & 숲", 71, 9], ["이올린집", 89, 64]],
+  "24": [["게이시르 교회내부", 66, 82]],
+  "25": [["교회에서", 69, 15], ["게이시르 교회지하", 62, 73]],
+  "26": [["저택2층#1", 10, 2], ["저택2층#2", 56, 5], ["라몬자작저택 1층", 80, 21], ["저택외부", 52, 59], ["영주가 있는곳", 88, 77], ["에스메랄다가 고문받고 있는곳", 68, 82]],
+  "27": [["1층으로#1", 14, 20], ["1층으로#2", 78, 16], ["비밀통로", 70, 83], ["라몬자작저택 2층", 75, 92]],
+  "28": [["안타나나리보 저택1/2", 20, 23], ["2/2로.... 스위치를 누르면 열린다", 88, 37], ["스위치", 47, 77]],
+  "29": [["안타나나리보 저택2/2", 30, 7], ["1/2로....", 20, 18], ["숨겨진방", 77, 87]],
+  "30": [["영주가있는곳", 64, 14], ["저택외부", 90, 84], ["보르도영주의 저택내부", 38, 87]],
+  "31": [["마장기와의 전투", 54, 9], ["교회요새내부", 24, 21], ["크리스와 이벤트", 85, 65], ["교회 바깥", 55, 83]],
+  "32": [["외부", 16, 81], ["멤피스영주저택", 74, 93]],
+  "33": [["루벤저택 2층", 80, 5], ["#1", 41, 16]],
+  "34": [["루벤저택 1층", 28, 10], ["#1", 59, 9], ["지하에서", 11, 65]],
+  "35": [["카라카스마을에서", 15, 4], ["#1", 91, 40], ["#1", 6, 49], ["루벤저택내부로", 55, 78], ["루벤저택지하수로", 74, 88]],
+  "36": [["안타나나리보 마을", 47, 5], ["안타나나리보 지방", 19, 11], ["안타나나리보 요새 망티아고산 방면", 70, 15], ["리브레벨지방", 67, 94]],
+  "38": [["망티고아산 동부", 60, 12]],
+  "39": [["망티고아 산 서부", 74, 4], ["카타리나와 전투", 27, 6.5], ["망티고아 동굴", 27, 46], ["막혀있음", 89, 57], ["안타나나리보 마을", 17, 74]],
+  "40": [["피닉스 동굴 입구", 20, 17], ["프리토리아 산 1/2", 70, 18], ["2/2로....", 95, 60], ["드래곤브레스 산맥 남단...", 8, 75], ["프리토리아 마을", 48, 87]],
+  "41": [["프리토리아 산 2/2", 83, 15], ["1/2로...", 8, 62], ["카리카스 숲", 85, 95]],
+  "42": [["로우엔던전", 52, 6], ["로우엔지방", 19, 15], ["로우엔숲", 5, 57], ["게이시르숲", 96, 73]],
+  "43": [["인페르노 내부로", 90, 8], ["에스테도데 저택에서", 6, 50], ["남 드래건브레스산맥", 73, 81]],
+  "44": [["폭풍도정상", 27, 13], ["아수라검이 있는곳", 74, 11], ["폭풍도 던젼", 17, 77]],
+  "45": [["제피르팰컨 기지", 33, 10], ["드래건브레스 산맥 (막혀있음)", 85, 15], ["해적키드의 동굴", 14, 23], ["드래건브레스 산맥 남단", 31, 78], ["프리토리아산", 93, 85]],
+  "46": [["교회내부로", 44, 9], ["니코시아마을", 46, 76], ["니코시아교회근처", 23, 83]],
+  "47": [["제피르팰컨 입구", 18, 14], ["드래건브레스 산맥 방향", 79, 8], ["▽ : 시작", 19, 64], ["★ : 보물상자", 21, 67], ["◎ : 동굴", 20, 70], ["◆ : 표지판", 21, 73], ["▲ : 비석", 19, 76], ["이쪽으로 나간다", 85, 78]],
+};
+// 지도 그림을 받아 온 곳. 따로 적지 않은 지도는 디시 갤러리 글에서 받았다.
+const SOURCES = {
+  dc: ["디시인사이드 창세기전 갤러리 「서풍의 광시곡 모든 맵」", "https://gall.dcinside.com/mgallery/board/view/?id=warofgenesis&no=99669"],
+  naver: ["네이버 블로그 My Wind is High 「서풍의 광시곡 공략 - 니코시아 지방으로...(1)」", "https://m.blog.naver.com/fireblow/10014241209"],
+};
+const SRC_OF = { "47": "naver" };
+MAPS.forEach(m => { m.T = TEXT[m.id] || []; m.src = SOURCES[SRC_OF[m.id] || "dc"]; });
+const BY = Object.fromEntries(MAPS.map(m => [m.id, m]));
+
+// ---------- 검색 ----------
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const chosung = s => [...s].map(c => { const k = c.charCodeAt(0) - 0xAC00; return k >= 0 && k < 11172 ? CHO[Math.floor(k / 588)] : c; }).join("");
+// 자료마다 표기가 달라서 한쪽으로 맞춘 뒤 비교
+const VARIANTS = [["리브레벨", "리브레빌"], ["로웬", "로우엔"], ["드래곤", "드래건"], ["던젼", "던전"], ["망티아고", "망티고아"], ["선더메어", "썬더메어"]];
+const norm = s => { let x = s.toLowerCase().replace(/[\s·()\/:,.&#]+/g, ""); for (const [a, b] of VARIANTS) x = x.split(a).join(b); return x; };
+const ENTRIES = [];
+MAPS.forEach(m => {
+  ENTRIES.push({ m, label: null, text: m.t });
+  m.L.forEach((l, i) => ENTRIES.push({ m, label: i, text: l[0] }));
+  m.T.forEach((t, i) => ENTRIES.push({ m, label: null, tx: i, text: t[0] }));
+});
+ENTRIES.forEach(e => { e.n = norm(e.text); e.c = chosung(e.n); });
+
+function search(q) {
+  const n = norm(q); if (!n) return null;
+  const cho = /^[ㄱ-ㅎ]+$/.test(n);
+  const hits = [];
+  for (const e of ENTRIES) {
+    let s = -1;
+    const at = e.n.indexOf(n);
+    if (at >= 0) s = at === 0 ? 3 : 2;
+    else if (cho && e.c.includes(n)) s = e.c.startsWith(n) ? 2.5 : 1.5;
+    // 지도 이름 > 지명 > 그림 글자 순으로 조금씩 앞세운다
+    if (s >= 0) hits.push({ e, s: s + (e.tx != null ? 0 : e.label === null ? .2 : .1) });
+  }
+  hits.sort((a, b) => b.s - a.s || a.e.text.length - b.e.text.length);
+  // 같은 지도의 같은 이름은 한 번만 (띄어쓰기·표기만 다른 그림 글자도 같은 이름으로 본다)
+  const seen = new Set();
+  return hits.filter(h => { const k = h.e.m.id + "|" + h.e.n; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 60);
+}
+
+// ---------- 목록 ----------
+const list = document.getElementById("list"), q = document.getElementById("q"), qclear = document.getElementById("qclear");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function hl(text, raw) {
+  const n = norm(raw); if (!n) return esc(text);
+  const idx = []; [...text].forEach((ch, i) => { if (norm(ch)) idx.push(i); });
+  const flat = norm(text), at = flat.indexOf(n);
+  if (at < 0 || flat.length !== idx.length) return esc(text);
+  const a = idx[at], b = idx[at + n.length - 1] + 1;
+  return esc(text.slice(0, a)) + "<mark>" + esc(text.slice(a, b)) + "</mark>" + esc(text.slice(b));
+}
+function renderList() {
+  const raw = q.value; qclear.hidden = !raw;
+  const res = search(raw);
+  if (!res) {
+    list.innerHTML = Object.entries(G).map(([g, name]) => {
+      const ms = MAPS.filter(m => m.g === g);
+      return `<div class="group"><h2>${name} · ${ms.length}</h2><ul>${ms.map(m =>
+        `<li><button class="item" data-map="${m.id}" aria-current="${cur && cur.id === m.id}"><span class="t">${esc(m.t)}</span><span class="m">${esc(m.L.filter(l => l[0] !== m.t).slice(0, 4).map(l => l[0]).join(" · "))}</span></button></li>`).join("")}</ul></div>`;
+    }).join("");
+    return;
+  }
+  if (!res.length) { list.innerHTML = `<p class="empty">'${esc(raw)}'이(가) 적힌 지도가 없습니다. 초성(ㄹㅂㄹㅂ)이나 더 짧은 이름으로 찾아 보세요.</p>`; return; }
+  list.innerHTML = `<div class="group"><h2>찾은 곳 · ${res.length}</h2><ul>${res.map(({ e }) =>
+    `<li><button class="item" data-map="${e.m.id}" ${e.label !== null ? `data-label="${e.label}"` : ""} ${e.tx != null ? `data-tx="${e.tx}"` : ""}><span class="t">${hl(e.text, raw)}</span><span class="k">${e.tx != null ? "그림 글자" : e.label === null ? "지도" : "지명"}</span><span class="m">${esc(e.m.t)} · ${G[e.m.g]}</span></button></li>`).join("")}</ul></div>`;
+}
+list.addEventListener("click", e => {
+  const b = e.target.closest(".item"); if (!b) return;
+  if (b.dataset.tx != null) openText(b.dataset.map, +b.dataset.tx);
+  else open(b.dataset.map, b.dataset.label != null ? +b.dataset.label : null);
+});
+q.addEventListener("input", renderList);
+q.addEventListener("keydown", e => { if (e.key === "Enter") { const b = list.querySelector(".item"); if (b) b.click(); } });
+qclear.addEventListener("click", () => { q.value = ""; renderList(); q.focus(); });
+
+// ---------- 뷰어 ----------
+const stage = document.getElementById("stage"), canvas = document.getElementById("canvas"), img = document.getElementById("img");
+const vsrc = document.getElementById("vsrc");
+const vt = document.getElementById("vt"), vs = document.getElementById("vs"), links = document.getElementById("links"), itext = document.getElementById("itext");
+// pinAt: 짚은 지명 번호, txAt: 짚은 그림 글자 번호, pinXY: 핀을 꽂을 자리
+let cur = null, zoom = 1, pinAt = null, txAt = null, pinXY = null;
+function applyZoom() {
+  const base = Math.min(stage.clientWidth, (img.naturalWidth || 850) * 1.6);
+  canvas.style.width = Math.round(base * zoom) + "px";
+}
+function centerOn(x, y, smooth) {
+  const left = canvas.offsetLeft + canvas.clientWidth * x / 100 - stage.clientWidth / 2;
+  const top = canvas.clientHeight * y / 100 - stage.clientHeight / 2;
+  stage.scrollTo({ left, top, behavior: smooth && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+}
+function drawSpots() {
+  canvas.querySelectorAll(".spot,.pin").forEach(n => n.remove());
+  cur.L.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.className = "spot"; b.style.left = l[1] + "%"; b.style.top = l[2] + "%";
+    b.title = l[0] + (l[3] ? " → " + BY[l[3]].t : ""); b.setAttribute("aria-label", b.title);
+    b.addEventListener("click", ev => { ev.stopPropagation(); if (moved > 6) return; l[3] ? open(l[3]) : mark(i); });
+    canvas.appendChild(b);
+  });
+  if (pinXY) {
+    const p = document.createElement("div");
+    p.className = "pin"; p.style.left = pinXY[0] + "%"; p.style.top = pinXY[1] + "%";
+    p.innerHTML = "<i></i><i></i><b></b>"; canvas.appendChild(p);
+  }
+  links.innerHTML = `<span>지명</span>` + cur.L.map((l, i) =>
+    `<button class="chip${l[3] ? " go" : ""}" data-i="${i}" aria-pressed="${pinAt === i}" title="${l[3] ? esc(BY[l[3]].t) + " 지도로" : "지도에서 짚기"}">${esc(l[0])}</button>`).join("");
+  itext.innerHTML = `<span>그림 속 글자</span>` + cur.T.map((t, i) =>
+    `<button class="tx" data-i="${i}" aria-pressed="${txAt === i}" title="지도에서 짚기">${esc(t[0])}</button>`).join("");
+}
+function mark(i) { pinAt = i; txAt = null; pinXY = cur.L[i].slice(1, 3); drawSpots(); centerOn(pinXY[0], pinXY[1], true); }
+function markText(i) { pinAt = null; txAt = i; pinXY = cur.T[i].slice(1, 3); drawSpots(); centerOn(pinXY[0], pinXY[1], true); }
+links.addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  const l = cur.L[+b.dataset.i];
+  if (l[3] && b.getAttribute("aria-pressed") === "true") open(l[3]); else mark(+b.dataset.i);
+});
+itext.addEventListener("click", e => { const b = e.target.closest(".tx"); if (b) markText(+b.dataset.i); });
+function openText(id, i) { open(id, null, i); }
+function open(id, labelIdx = null, textIdx = null) {
+  const m = BY[id]; if (!m) return;
+  const same = cur && cur.id === id;
+  cur = m; pinAt = labelIdx; txAt = textIdx;
+  pinXY = labelIdx !== null ? m.L[labelIdx].slice(1, 3) : textIdx !== null ? m.T[textIdx].slice(1, 3) : null;
+  vsrc.innerHTML = `지도 출처 <a href="${esc(m.src[1])}" target="_blank" rel="noopener">${esc(m.src[0])}</a>`;
+  vt.textContent = m.t; vs.textContent = G[m.g] + " · 지명 " + m.L.length + "곳" + (m.L.some(l => l[3]) ? " · → 표시는 이어지는 지도" : "");
+  const go = () => {
+    if (!same) zoom = pinXY ? 1.6 : 1;
+    applyZoom(); drawSpots();
+    requestAnimationFrame(() => { if (pinXY) centerOn(pinXY[0], pinXY[1], same); else if (!same) stage.scrollTo(0, 0); });
+  };
+  if (!same) { img.onload = go; img.alt = m.t + " 지도"; img.src = "maps/" + id + ".jpg"; if (img.complete && img.naturalWidth) go(); }
+  else go();
+  try { history.replaceState(null, "", "#m" + id); } catch (_) {}
+  list.querySelectorAll(".item").forEach(b => b.setAttribute("aria-current", b.dataset.map === id && b.dataset.label == null));
+}
+function zoomBy(f) {
+  const cx = (stage.scrollLeft + stage.clientWidth / 2 - canvas.offsetLeft) / canvas.clientWidth * 100;
+  const cy = (stage.scrollTop + stage.clientHeight / 2) / canvas.clientHeight * 100;
+  zoom = Math.max(.5, Math.min(4, zoom * f)); applyZoom(); centerOn(cx, cy, false);
+}
+document.getElementById("zin").onclick = () => zoomBy(1.35);
+document.getElementById("zout").onclick = () => zoomBy(1 / 1.35);
+document.getElementById("zfit").onclick = () => { zoom = 1; applyZoom(); stage.scrollTo(0, 0); };
+window.addEventListener("resize", () => cur && applyZoom());
+stage.addEventListener("wheel", e => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15); } }, { passive: false });
+// 마우스로 끌어서 이동 (터치는 기본 스크롤)
+let down = null, moved = 0;
+stage.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") return; down = [e.clientX, e.clientY, stage.scrollLeft, stage.scrollTop]; moved = 0; stage.classList.add("drag"); });
+window.addEventListener("pointermove", e => { if (!down) return; const dx = e.clientX - down[0], dy = e.clientY - down[1]; moved = Math.abs(dx) + Math.abs(dy); stage.scrollLeft = down[2] - dx; stage.scrollTop = down[3] - dy; });
+window.addEventListener("pointerup", () => { down = null; stage.classList.remove("drag"); setTimeout(() => moved = 0, 0); });
+
+// 처음 화면: 주소에 #m번호가 있으면 그 지도, 없으면 지금 진행 중인 라몬 자작 저택
+const h = (location.hash.match(/^#m(\d\d)$/) || [])[1];
+renderList();
+if (h && BY[h]) open(h); else open("26");
+})();
+</script>

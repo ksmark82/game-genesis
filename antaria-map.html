@@ -1,0 +1,784 @@
+<title>안타리아 전도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Cormorant+SC:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: 항해사의 밤 해도 — 왼쪽은 확대/이동되는 큰 지도, 오른쪽은 지역 설명 패널. 좁은 화면에선 위아래로 쌓인다. */
+:root {
+  --sea-deep: #0a1322;
+  --sea: #122038;
+  --sea-shelf: #1a2d4b;
+  --depth-line: #36507a;
+  --gilt: #d8b878;
+  --gilt-soft: #a88d5c;
+  --text: #ece4d2;
+  --muted: #98a4ba;
+  --panel: #0e1828;
+  --panel-line: #24375a;
+  --halo: #0b1424;
+  --dark-armor: #b0566a;
+  --silver-arrow: #7f9fd8;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", "Batang", serif;
+  --font-latin: "Cormorant SC", "Cormorant Garamond", Georgia, serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--sea-deep); color: var(--text); }
+body { font-family: var(--font-ui); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 40px; display: grid; gap: 18px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.title-block { display: grid; gap: 2px; }
+.eyebrow { font-family: var(--font-latin); font-size: 15px; letter-spacing: .28em; color: var(--gilt); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.1; margin: 0; letter-spacing: .04em; text-wrap: balance; }
+.lede { color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
+
+.layers { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 13px/1 var(--font-ui); color: var(--muted); background: transparent; border: 1px solid var(--panel-line); border-radius: 999px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--muted); }
+.chip[aria-pressed="true"] { color: var(--text); border-color: var(--gilt-soft); }
+.chip[aria-pressed="true"]::before { background: var(--gilt); border-color: var(--gilt); }
+.chip:focus-visible, button:focus-visible, .row:focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.search { position: relative; flex: 1 1 320px; max-width: 460px; min-width: 0; }
+.search-ico { position: absolute; left: 13px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--gilt); pointer-events: none; }
+.search input { width: 100%; font: 400 15px/1 var(--font-ui); color: var(--text); background: var(--panel); border: 1px solid var(--panel-line); border-radius: 6px; padding: 12px 40px 12px 40px; }
+.search input::placeholder { color: var(--muted); }
+.search input:focus { outline: none; border-color: var(--gilt-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gilt) 22%, transparent); }
+.qclear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; border-radius: 4px; }
+.suggest { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 6px; box-shadow: 0 14px 34px rgba(0,0,0,.45); max-height: 360px; overflow-y: auto; }
+.suggest li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 9px 10px; border-radius: 4px; cursor: pointer; }
+.suggest li[aria-selected="true"] { background: color-mix(in srgb, var(--gilt) 14%, transparent); }
+.suggest .s-ko { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.suggest .s-ko mark { background: none; color: var(--gilt); }
+.suggest .s-en { grid-column: 1; font-family: var(--font-latin); font-size: 13px; letter-spacing: .12em; color: var(--muted); }
+.suggest .s-kind { grid-column: 2; grid-row: 1 / span 2; font-size: 11px; color: var(--muted); border: 1px solid var(--panel-line); border-radius: 3px; padding: 2px 7px; }
+.suggest .s-empty { color: var(--muted); cursor: default; display: block; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ping-ring { transform-box: fill-box; transform-origin: center; animation: ping 1.5s cubic-bezier(.2,.6,.3,1) infinite; }
+.ping-ring.r2 { animation-delay: .5s; }
+.ping-ring.r3 { animation-delay: 1s; }
+@keyframes ping { 0% { transform: scale(.35); opacity: 1; } 100% { transform: scale(2.8); opacity: 0; } }
+.ping-pin { transform-box: fill-box; transform-origin: 50% 100%; animation: bob .55s cubic-bezier(.4,0,.6,1) infinite alternate; }
+@keyframes bob { 0% { transform: translateY(0) scale(1, .94); } 100% { transform: translateY(-38%) scale(.96, 1.04); } }
+@media (prefers-reduced-motion: reduce) { .ping-ring, .ping-pin { animation: none; } .ping-ring.r2, .ping-ring.r3 { display: none; } }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 980px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.mapframe { position: relative; border: 1px solid var(--panel-line); border-radius: 6px; overflow: hidden; background: var(--sea); aspect-ratio: 3 / 2; max-width: 100%; }
+.mapframe svg { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.mapframe svg.dragging { cursor: grabbing; }
+.zoom { position: absolute; right: 12px; bottom: 12px; display: grid; gap: 6px; }
+.zoom button { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--panel-line); background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--text); font: 500 18px/1 var(--font-ui); cursor: pointer; }
+.zoom button.reset { font-size: 12px; }
+.hint { position: absolute; left: 12px; bottom: 12px; font-size: 12px; color: var(--muted); background: color-mix(in srgb, var(--panel) 80%, transparent); padding: 4px 10px; border-radius: 4px; pointer-events: none; }
+
+aside.panel { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 6px; padding: 22px 22px 18px; display: grid; gap: 16px; min-width: 0; }
+.p-head { display: grid; gap: 4px; }
+.p-en { font-family: var(--font-latin); font-size: 15px; letter-spacing: .18em; color: var(--gilt); }
+.p-ko { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1.2; margin: 0; }
+.bloc { justify-self: start; font-size: 12px; font-weight: 600; letter-spacing: .04em; padding: 3px 10px; border-radius: 3px; border: 1px solid currentColor; }
+.p-body { margin: 0; color: var(--text); }
+dl.facts { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; font-size: 14px; border-top: 1px solid var(--panel-line); padding-top: 14px; }
+dl.facts dt { color: var(--muted); }
+dl.facts dd { margin: 0; }
+.back { justify-self: start; background: none; border: 0; color: var(--gilt); font: 500 13px var(--font-ui); cursor: pointer; padding: 0; }
+
+.index { display: grid; gap: 14px; border-top: 1px solid var(--panel-line); padding-top: 14px; }
+.index h3 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .08em; }
+.rows { display: flex; flex-wrap: wrap; gap: 6px; }
+.row { display: inline-flex; align-items: center; gap: 7px; font: 400 13px/1 var(--font-ui); color: var(--text); background: transparent; border: 1px solid var(--panel-line); border-radius: 4px; padding: 7px 10px; cursor: pointer; }
+.row:hover { border-color: var(--gilt-soft); }
+.sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+footer.notes { color: var(--muted); font-size: 13px; display: grid; gap: 6px; max-width: 90ch; }
+footer.notes a { color: var(--gilt); }
+
+/* 지도 안의 글자 */
+.lbl-ko { font-family: var(--font-display); font-weight: 700; fill: var(--text); paint-order: stroke; stroke: var(--halo); stroke-width: 7px; stroke-linejoin: round; pointer-events: none; }
+.lbl-en { font-family: var(--font-latin); font-weight: 600; fill: var(--gilt); letter-spacing: .2em; paint-order: stroke; stroke: var(--halo); stroke-width: 5px; stroke-linejoin: round; pointer-events: none; }
+.lbl-sea { font-family: var(--font-latin); font-style: italic; font-weight: 500; fill: #8fa6c9; letter-spacing: .32em; cursor: pointer; }
+.lbl-sea-ko { font-family: var(--font-display); fill: #8fa6c9; letter-spacing: .3em; cursor: pointer; }
+.lbl-feat { font-family: var(--font-display); fill: #e8dcc0; paint-order: stroke; stroke: var(--halo); stroke-width: 5px; stroke-linejoin: round; pointer-events: none; }
+.lbl-small { font-family: var(--font-ui); fill: #d6cdb8; paint-order: stroke; stroke: var(--halo); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+.terr { cursor: pointer; transition: fill-opacity .15s; }
+.terr:hover { fill-opacity: 1; }
+.off { display: none; }
+@media (prefers-reduced-motion: reduce) { .terr { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <span class="eyebrow">Carta Antariae · 에스겔력</span>
+      <h1>안타리아 전도</h1>
+      <p class="lede">창세기전 시리즈의 무대, 안타리아 행성. 서부의 다크 아머, 동부의 실버 애로우, 이스가르드해 너머 동방 대륙까지 한 장에 담았습니다. 나라나 바다 이름을 누르면 설명이 나옵니다.</p>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="search">
+      <label for="q" class="sr-only">지명 검색</label>
+      <svg class="search-ico" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M13 13l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="q" type="text" placeholder="도시·지명 찾기 (예: 로우엔, ㄹㅇㅇ)" autocomplete="off" spellcheck="false"
+        role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest">
+      <button id="qclear" class="qclear" aria-label="검색어 지우기" hidden>×</button>
+      <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+    </div>
+    <div class="layers" role="group" aria-label="지도 표시 항목">
+      <button class="chip" id="t-borders" aria-pressed="true" data-layer="g-borders">국경</button>
+      <button class="chip" id="t-relief" aria-pressed="true" data-layer="g-relief">산맥·강</button>
+      <button class="chip" id="t-depth" aria-pressed="true" data-layer="g-depth">수심선</button>
+      <button class="chip" id="t-routes" aria-pressed="true" data-layer="g-routes">항로·필라트 라인</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="mapframe">
+      <svg id="map" viewBox="0 0 2100 1400" role="img" aria-label="안타리아 행성 지도"></svg>
+      <div class="zoom">
+        <button id="zin" aria-label="확대">+</button>
+        <button id="zout" aria-label="축소">−</button>
+        <button id="zreset" class="reset" aria-label="전체 보기">전체</button>
+      </div>
+      <div class="hint">끌어서 이동 · 휠/핀치로 확대</div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <footer class="notes">
+    <div>바탕 자료: 창세기전 3 공식 행성 전도, 창세기전 4 안타리아 대륙 지도, 나무위키 <a href="https://namu.wiki/w/%EC%95%88%ED%83%80%EB%A6%AC%EC%95%84" target="_blank" rel="noopener">안타리아</a> · <a href="https://namu.wiki/w/%EC%95%88%ED%83%80%EB%A6%AC%EC%95%84%20%EB%8C%80%EB%A5%99" target="_blank" rel="noopener">안타리아 대륙</a> 문서.</div>
+    <div>해안선과 국경은 두 공식 지도를 겹쳐 손으로 다시 그린 것이라 실제 게임 지도와 조금씩 다릅니다. 국경은 창세기전 2 시절 여덟 나라 기준이고, 창세기전 3 시점의 변화는 각 나라 설명에 적었습니다. 도시·강 위치는 설정 문장을 바탕으로 짐작해 찍은 곳입니다.</div>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(() => {
+const W = 2100, H = 1400, CELL = 4;
+const NX = Math.ceil(W / CELL) + 1, NY = Math.ceil(H / CELL) + 1;
+const NS = "http://www.w3.org/2000/svg";
+
+// 좌표 변환: A = 창세기전 4 대륙 지도(750px), E = 창세기전 3 행성 전도(750×516px)
+const A = (x, y) => [150 + (x - 40) * 1.18, 60 + (y - 35) * 1.18];
+const E = (x, y) => [150 + (x - 55) * 2.79, 50 + y * 2.79];
+const mapA = pts => pts.map(p => A(p[0], p[1]));
+const mapE = pts => pts.map(p => E(p[0], p[1]));
+
+// ---------- 지형 데이터 ----------
+const LAND = [
+  mapA([[45,300],[60,255],[95,235],[85,190],[100,150],[120,120],[105,85],[140,75],[170,95],[210,70],[260,90],[300,45],[350,35],[390,60],[420,40],[470,55],[510,40],[560,70],[600,45],[650,40],[690,70],[700,120],[680,170],[700,200],[690,240],[640,270],[660,300],[675,340],[665,380],[675,420],[650,450],[610,440],[600,470],[615,520],[590,555],[560,540],[545,500],[520,470],[500,500],[470,480],[440,470],[410,440],[380,450],[360,480],[345,520],[330,560],[320,600],[300,640],[285,665],[260,640],[220,610],[180,580],[150,550],[120,520],[95,480],[75,440],[70,410],[85,380],[60,350],[40,330]]),
+  mapE([[405,170],[420,157],[445,152],[468,160],[482,178],[500,184],[515,184],[523,198],[526,232],[516,262],[496,272],[472,266],[458,282],[460,302],[446,296],[437,266],[444,236],[434,214],[415,197],[402,186]]),
+  mapE([[492,166],[500,140],[520,120],[530,100],[545,85],[570,78],[600,85],[620,95],[615,110],[595,108],[585,125],[560,140],[540,150],[522,165],[508,172]]),
+  mapE([[240,370],[260,350],[300,345],[340,340],[370,330],[385,345],[380,370],[390,400],[380,430],[360,450],[330,445],[305,460],[270,470],[240,455],[225,420],[230,390]]),
+  mapE([[660,300],[680,285],[705,290],[720,310],[715,340],[695,355],[670,350],[655,330]]),
+];
+const ISLANDS = [
+  ...[[330,300,12],[305,288,8],[352,286,7],[278,252,8],[258,244,5],[318,252,6],[415,292,6],[440,302,5],[380,270,5],[90,355,9],[205,400,9],[405,395,9]].map(([x,y,r]) => [...E(x,y), r*2.79]),
+  ...[[440,560,9],[468,538,6],[505,600,8],[380,560,6],[560,600,5],[625,560,5],[75,40,14],[150,30,8],[390,22,8],[700,30,10],[720,90,6],[28,380,6],[30,250,5]].map(([x,y,r]) => [...A(x,y), r*1.18]),
+];
+const LAKES = [[...A(490,380), 30, 17], [...A(272,585), 10, 9]];
+
+// ---------- 나라와 땅 ----------
+const BLOCS = {
+  dark:   { name: "다크 아머 · 서부", color: "var(--dark-armor)" },
+  silver: { name: "실버 애로우 · 동부", color: "var(--silver-arrow)" },
+  free:   { name: "중립국 · 자유도시", color: "#c9b27c" },
+  east:   { name: "동방 대륙 (루슈드)", color: "#d39468" },
+  wild:   { name: "그 밖의 땅", color: "#9fb3c6" },
+};
+const R = [
+  { id: "gaysir", ko: "게이시르 제국", en: "Gaysir Empire", bloc: "dark", color: "#9a5866",
+    seeds: mapA([[90,330],[110,390],[140,450],[170,510],[200,560],[80,430]]), label: A(140,440), size: 38,
+    body: "안타리아 서부의 맹주. 데블족 황가가 다스리며 수천 년 동안 13암흑신을 섬기는 암흑신앙을 지켜 왔습니다. 땅이 척박해 곡물은 사이럽스를 거쳐 동부에서 사 오고, 대신 에딜륨 같은 광물을 내다 팝니다.",
+    facts: [["지형", "북서쪽 드래건 브레스 산맥(화산지대)과 고원"], ["산업", "광산업, 군대"], ["주요 도시", "로우엔 (신 게이시르 제국의 수도)"], ["창세기전 3", "서부를 완전히 하나로 묶고 패자가 됨"]] },
+  { id: "garad", ko: "가라드", en: "Garad", bloc: "dark", color: "#8a5a82",
+    seeds: mapA([[245,392],[272,378]]), label: A(252,410), size: 26,
+    body: "게이시르·트리시스와 함께 서부 삼국동맹을 이룬 나라. 동남쪽으로 트리시스 사막의 일부가 국토에 걸쳐 있습니다.",
+    facts: [["동맹", "게이시르 · 트리시스와 삼국동맹"], ["창세기전 3", "게이시르에 흡수됨"]] },
+  { id: "trisis", ko: "트리시스", en: "Trisis", bloc: "dark", color: "#c4a46e",
+    seeds: mapA([[280,455],[285,510],[300,555]]), label: A(285,480), size: 30,
+    body: "서부를 '저주받은 땅'처럼 보이게 만든 트리시스 사막의 나라. 모래와 바위뿐이지만, 사이럽스에서 식량과 물자가 들어오는 길목이라 중요한 땅입니다.",
+    facts: [["경계", "서쪽은 드래곤 스파인 산맥과 소드 강, 동쪽은 팬드래건 평야, 남쪽은 그라테스 평원"], ["창세기전 3", "게이시르에 흡수됨"]] },
+  { id: "bifrost", ko: "비프로스트 공국", en: "Duchy of Bifrost", bloc: "free", color: "#7d8aa6",
+    seeds: mapA([[200,335],[160,318],[240,322]]), label: A(205,330), size: 28,
+    body: "기간테스 산맥 기슭의 산악 국가로, 세워질 때부터 중립을 내세웠습니다. 산길을 훤히 아는 남자들이 '레인저'로 살아가고, 고산지대에는 날개 달린 발탄족이 삽니다.",
+    facts: [["종족", "발탄족(비행 용병으로 각국에 고용됨)"], ["역사", "흑태자의 게이시르에 멸망 → 흑태자 사후 재건 → 50년 뒤 다시 게이시르에 병합"]] },
+  { id: "cyrups", ko: "사이럽스", en: "Cyrups", bloc: "free", color: "#c98f63",
+    seeds: mapA([[285,605],[250,620],[300,585]]), label: A(285,618), size: 28,
+    body: "대륙 남단의 자유무역지대. 서부에서 유일하게 곡물이 나는 그라테스 평원과 사이럽스 호수를 끼고 있고, 동서를 잇는 중계무역으로 큰 그라나다 상단의 본거지입니다.",
+    facts: [["교통", "잠수정 (서부의 유일한 고속 이동수단)"], ["창세기전 3", "자치권만 남고 사실상 제국 세력권"]] },
+  { id: "cutis", ko: "커티스 공화국", en: "Republic of Cutis", bloc: "silver", color: "#5e8f6a",
+    seeds: mapA([[350,350],[390,330],[320,330],[430,330]]), label: A(380,345), size: 30,
+    body: "기간테스 산맥 남쪽, 숲과 산지에 자리 잡은 나라. 수도 노호트 시티는 오스킬 산맥 동편에 있습니다. 커티스 궁수들은 이 산과 숲을 삶의 터전으로 삼습니다.",
+    facts: [["수도", "노호트 시티"], ["창세기전 3", "버몬트 대공에게 멸망"]] },
+  { id: "pandragon", ko: "팬드래건 왕국", en: "Kingdom of Pandragon", bloc: "silver", color: "#5b78b8",
+    seeds: mapA([[440,410],[480,440],[540,470],[590,520],[390,420],[520,405],[400,460]]), label: A(470,430), size: 40,
+    body: "동부 실버 애로우의 맹주. 알케오니아 호수에서 흘러나온 강들이 만든 안타리아 최대의 곡창지대를 가졌습니다. 다카마 항을 중심으로 아미고 상단이 머매니안해 무역을 쥐고 있습니다.",
+    facts: [["마법", "왕족 대부분이 빙계 마법을 극한까지 다룸"], ["기관", "과학마법연구소, 왕립 마법사단"], ["창세기전 3", "게이시르와 대륙을 동서로 나눠 가짐"]] },
+  { id: "dagal", ko: "다갈", en: "Dagal", bloc: "silver", color: "#4b9098",
+    seeds: mapA([[600,330],[650,320],[565,318]]), label: A(612,335), size: 28,
+    body: "대륙 북동부, 기간테스 산맥과 마솔 산맥 사이 숲과 산의 나라. 광전사로 이름이 높습니다.",
+    facts: [["지형", "숲, 마솔 산맥"], ["창세기전 3", "투르와의 50년 전쟁 뒤로 나라 문을 걸어 잠금"]] },
+  { id: "astynia", ko: "아스타니아 법국", en: "Astynia", bloc: "silver", color: "#8e7fbf",
+    seeds: mapA([[612,410],[650,420],[640,450]]), label: A(618,418), size: 24,
+    body: "12주신을 섬기는 주신교의 중심지. 마솔 산맥이 국토를 가로지르고, 그 동쪽 너머에 태양의 신전이 있습니다.",
+    facts: [["신앙", "주신교"], ["역사", "투르 제국의 침략으로 멸망, 이후 투르군이 주둔"]] },
+  { id: "ice", ko: "북빙원", en: "Lost Land of Ice Field", bloc: "wild", color: "#c7d3df",
+    seeds: mapA([[150,180],[260,150],[380,130],[500,140],[620,120],[300,230],[450,228],[560,220],[660,200],[110,120],[620,60],[380,60],[220,90],[90,250],[180,250]]), label: A(400,175), size: 34,
+    body: "기간테스 산맥 너머 툰드라 평원을 지나면 나오는 얼음 땅. 창세기전 2 시절, 이올린의 팬드래건 부흥군은 비프로스트에서 북빙원을 지나 다갈까지 가는 데 30일쯤 걸렸습니다.",
+    facts: [["가는 길", "기간테스 산맥 → 툰드라 평원 → 북빙원"]] },
+  { id: "tur_s", ko: "투르 제국", en: "Tur · Sultan", sub: "술탄령", bloc: "east", color: "#b9644c",
+    seeds: mapE([[440,175],[415,180],[465,170]]), label: E(440,178), size: 30,
+    body: "동방 대륙(투르어로 루슈드 대륙)의 제국. 무라마드 대제가 세운 앙그라교를 믿고, 마법 대신 과학이 발달했습니다. 술탄령과 칼리프령으로 나뉩니다.",
+    facts: [["종교", "앙그라교"], ["바다", "주변을 험한 필라트 라인이 둘러쌈"], ["역사", "새 항로가 열린 뒤 안타리아와 50년 전쟁"]] },
+  { id: "tur_c", ko: "투르 제국", en: "Tur · Caliph", sub: "칼리프령", bloc: "east", color: "#c88f4e",
+    seeds: mapE([[500,200],[505,240],[472,262],[452,290]]), label: E(490,235), size: 30,
+    body: "투르 제국의 남쪽 칼리프령. 투르는 원래 부족 단위로 흩어져 있다가 앙그라교와 함께 하나의 제국이 되었습니다. 50년 전쟁 때 마장기와 마법이 처음 들어왔습니다.",
+    facts: [["종교", "앙그라교"], ["창세기전 3", "아스타니아를 점령하고 안타리아와 전쟁"]] },
+  { id: "han", ko: "한 제국", en: "Han Empire", bloc: "east", color: "#b4a46c",
+    seeds: mapE([[560,110],[525,140],[600,90]]), label: E(560,112), size: 30,
+    body: "투르 대륙과 좁은 해협을 사이에 둔 한 대륙의 제국. 불교와 도교를 섞은 듯한 사신교가 있다는 것 말고는 알려진 게 적습니다.",
+    facts: [["종교", "사신교"], ["통화", "다른 나라와 달리 ELD를 쓰는지 알 수 없음"]] },
+  { id: "antarctic", ko: "남극 대륙", en: "Antarctic Continent", bloc: "wild", color: "#4f9d9a",
+    seeds: mapE([[300,400],[260,430],[350,380],[340,430],[205,400],[405,395]]), label: E(305,405), size: 34,
+    body: "사람이 살지 않는 대륙. 양옆에 붙은 두 섬을 빼면 크기가 투르 대륙과 엇비슷합니다.",
+    facts: [["거주", "무인 대륙"]] },
+  { id: "eastisl", ko: "이름 없는 대륙", en: "Unnamed Land", bloc: "wild", color: "#7f86b0",
+    seeds: mapE([[690,320]]), label: E(688,322), size: 22,
+    body: "투르 대륙 동쪽 바다에 있는 큰 섬 또는 대륙. 창세기전 3 행성 전도에만 나옵니다. 시반 슈미터 챕터에서 호위선단이 '남극 대륙'이라 부르며 보급하러 들른 땅이 여기라는 추측이 있습니다.",
+    facts: [["크기", "안타리아 대륙의 절반쯤으로 추정"]] },
+  { id: "archip", ko: "동방 항로의 섬들", en: "Eastern Isles", bloc: "wild", color: "#8a8fa8",
+    seeds: mapE([[330,300],[278,252],[380,270],[425,296]]), label: E(330,330), size: 18,
+    body: "안타리아 남동쪽과 투르 서남쪽 사이의 군도. 라르고 무어와 페넬로가 필라트 라인을 넘는 항로를 열 때 징검다리로 쓴 섬들로 여겨집니다.",
+    facts: [["출처", "창세기전 3 행성 전도"]] },
+  { id: "storm", ko: "폭풍도", en: "Storm Island", bloc: "wild", color: "#8a8fa8",
+    seeds: mapE([[90,355]]), label: E(90,330), size: 20,
+    body: "안타리아 남서쪽, 머매니안해 서쪽 끝에 홀로 떨어진 섬.",
+    facts: [] },
+];
+const SEAS = {
+  isgard: { ko: "이스가르드해", en: "Isgardian Ocean", bloc: "sea",
+    body: "안타리아 동쪽의 큰 바다. 1년 내내 파도가 거칠고 암초가 많습니다. 투르 대륙을 둘러싼 가장 험한 구간을 '필라트 라인'이라 부르는데, 이 때문에 안타리아와 투르는 수십 년 동안 오가지 못했습니다.",
+    facts: [["필라트 라인", "투르 대륙을 감싸는 마의 해역"], ["에스겔력 1209년경", "라르고 무어와 페넬로가 섬을 이어 가는 안전한 항로를 엶. 이것이 50년 전쟁의 불씨가 됨"]] },
+  merman: { ko: "머매니안해", en: "Mermanian Ocean", bloc: "sea",
+    body: "대륙 남동쪽 바다. 머맨족(인어족)이 산다고 해서 붙은 이름입니다. 머맨 아일랜드, 해적들의 섬 블루 시드 같은 섬이 촘촘하고, 팬드래건 다카마 항을 중심으로 무역이 활발합니다.",
+    facts: [["괴물", "창세기전 2 시절 바다의 제왕 폴라 크라켄이 나타남"], ["마법", "소환마법이 이 바다 어딘가의 섬마을에서만 전해짐"]] },
+  unknown: { ko: "미지의 바다", en: "Unknown Ocean", bloc: "sea",
+    body: "대륙 서쪽 바다. 게이시르에서 서쪽으로도 투르에 갈 수는 있지만 필라트 라인이 가로막아 훨씬 어렵습니다.", facts: [] },
+  great: { ko: "대양", en: "Great Ocean", bloc: "sea",
+    body: "남극 대륙과 동방 대륙 사이로 펼쳐진 큰 바다.", facts: [] },
+};
+const TOWNS = {
+  rowen: { ko: "로우엔", en: "Rowen", bloc: "dark", pos: A(192,566), star: true,
+    body: "구 게이시르 제국령 서부 해안의 도시. 자유무역지대 사이럽스와 가깝고 북쪽에 보르도가 있어 상공업이 발달했고, 제국의 다른 도시보다 부유합니다. 투르에서 들여온 총포 기술 덕에 총기 상점이 많고, 그중 헤럴드 부부의 '파에톤'이 유명합니다.",
+    facts: [["처음 등장", "창세기전 외전 서풍의 광시곡"], ["영주", "알프레드 프레데릭 (1250년 영지로 받음) → 딸 크리스티나 프레데릭 (1265년)"], ["서풍의 광시곡", "옛 수도 게이시르 시티를 넘어선 제국 제1도시"], ["신 게이시르 제국", "크리스티나가 구 제국령을 통일한 뒤 수도가 됨"], ["도시 모습", "좌우대칭 도시 설계, 다리와 해자로 둘러싼 요새 도시"], ["창세기전 3", "슬럼가가 생김"]] },
+  bordeaux: { ko: "보르도", en: "Bordeaux", bloc: "dark", pos: A(150,512),
+    body: "구 게이시르 제국령, 로우엔 북쪽에 있는 도시. 로우엔이 상공업으로 부유해진 데에는 사이럽스와 이 도시 사이에 끼어 있는 자리가 한몫했습니다.",
+    facts: [["위치", "로우엔 북쪽 (서풍의 광시곡 패키지 지도 기준)"]] },
+  inferno: { ko: "인페르노", en: "Inferno", bloc: "dark", kind: "감옥", pos: A(100,305), side: "right",
+    body: "구 게이시르 제국령 북쪽, 드래건 브레스 산맥 가장 깊은 곳의 유황 동굴이자 악명 높은 감옥. 죄수들은 유황 광산에서 강제 노역을 합니다. 겉으로는 유황 동굴일 뿐이지만, 가장 깊은 곳에 13암흑신의 수장 혼돈의 데이모스가 봉인된 '암흑신의 봉인지'가 숨어 있습니다.",
+    facts: [["창세기전 2", "흑태자가 데이모스를 만난 곳"], ["서풍의 광시곡", "시라노가 1250년부터 갇혀 있다가 데이모스에게 암흑혈을 받음"], ["에스겔력 1263년", "제피르 팰컨 메디치의 습격 때 시라노 탈출"], ["근처", "프리토리아"]] },
+  pretoria: { ko: "프리토리아", en: "Pretoria", bloc: "dark", pos: A(135,385), side: "right",
+    body: "구 게이시르 제국령, 게이시르 시티 서쪽 드래건 브레스 산맥 중턱의 마을. 산세가 수려하고 맑은 광천수가 흘러 예로부터 제국 고위 귀족들이 서로 영주가 되려고 다투던 곳입니다. 한때 온갖 전설과 암흑 신앙의 중심지였고, 데이모스가 봉인된 인페르노와도 가깝습니다.",
+    facts: [["처음 등장", "창세기전 외전 서풍의 광시곡"], ["인물", "'프리토리아의 성녀' 에스메랄다가 가난한 사람들을 위한 무료 진료소를 운영"], ["소문", "근처 산에서 이상한 기운이 흘러나온다고 함"]] },
+  caracas: { ko: "카라카스", en: "Caracas", bloc: "dark", pos: A(228,380), side: "right",
+    body: "구 게이시르 제국령, 게이시르 시티 북쪽의 작은 시골 마을. 사방이 깊은 숲이라 사냥꾼들이 사냥으로 먹고삽니다. 조용해 보여도 여러 지역과 맞닿은 길목이라, 국경을 넘나드는 여행객과 행상인이 꼭 거쳐 가는 곳입니다. 그래서 도로 표지판이 잘 갖춰져 있습니다.",
+    facts: [["처음 등장", "창세기전 외전 서풍의 광시곡"], ["위치", "게이시르 시티 북쪽, 깊은 숲 속 (게임 지도에 정확한 자리가 없어 짐작해 찍음)"], ["옛 영토", "리브레빌과 함께 원래 가라드 땅 (아수라 프로젝트 설정)"], ["서풍의 광시곡", "시라노가 폭풍도에서 돌아와 트리시스 사막을 건넌 뒤 들르는 곳"]] },
+  libreville: { ko: "리브레빌", en: "Libreville", bloc: "dark", pos: A(262,362), side: "right",
+    body: "구 게이시르 제국령, 카라카스 북동쪽의 도시. 추운 비프로스트 공국과 가까운데도 이상할 만큼 따뜻합니다. 원래는 척박한 고장이었지만, 활발한 교역과 개척·개발 덕에 문화와 돈이 모이는 대도시가 되었습니다. 도시와 이름이 같은 다리가 명물로, 구 제국령에서 가장 아름다운 건축물로 꼽히지만 다리를 지을 때의 잔혹한 전설이 전해집니다.",
+    facts: [["처음 등장", "창세기전 외전 서풍의 광시곡"], ["위치", "카라카스 북동쪽, 비프로스트 국경 가까이 (짐작해 찍음)"], ["옛 영토", "카라카스와 함께 원래 가라드 땅 (아수라 프로젝트 설정)"], ["명물", "리브레빌 다리"]] },
+  nicosia: { ko: "니코시아", en: "Nicosia", bloc: "dark", pos: A(222,462),
+    body: "구 게이시르 제국령, 게이시르 시티 남쪽의 작은 마을. 마을 근처에 교회 요새가 있습니다. 체사레 추기경이 이곳에 요새를 세우고 무언가 꾸미고 있다는 정보가 들어와, 제피르 팰컨이 정탐하러 가는 곳입니다.",
+    facts: [["처음 등장", "창세기전 외전 서풍의 광시곡"], ["위치", "게이시르 시티 남쪽 (게임 지도에 정확한 자리가 없어 짐작해 찍음)"], ["근처", "교회 요새"], ["서풍의 광시곡", "카라카스 공격 뒤 제피르 팰컨 회의에서 정탐 임무 대상으로 정해짐"]] },
+  nohot: { ko: "노호트 시티", en: "Nohot City", bloc: "silver", pos: A(372,356),
+    body: "커티스 공화국의 수도. 오스킬 산맥 동편 기슭에 자리 잡았고, 산맥 덕에 사람이 많이 모여 사는 곳입니다.",
+    facts: [["나라", "커티스 공화국"]] },
+  takama: { ko: "다카마 항", en: "Port Takama", bloc: "silver", pos: A(463,462),
+    body: "팬드래건 왕국의 항구. 머매니안해 해상 무역의 중심이고, 아미고 상단이 이곳을 발판으로 컸습니다.",
+    facts: [["나라", "팬드래건 왕국"], ["바다", "머매니안해"]] },
+  preston: { ko: "프레스톤", en: "Preston", bloc: "silver", pos: A(585,522),
+    body: "팬드래건 왕국 남해의 요새. 투르의 침략 뒤 팬드래건이 트리시스 기술자들을 불러 1급 마장기 '라'를 양산하려 한 곳입니다.",
+    facts: [["나라", "팬드래건 왕국"]] },
+  sun: { ko: "태양의 신전", en: "Temple of the Sun", bloc: "silver", pos: A(652,386),
+    body: "마솔 산맥('태양이 떠오르는 산맥') 동쪽 너머에 있는 신전.",
+    facts: [["지형", "마솔 산맥 동쪽"]] },
+};
+const RI = Object.fromEntries(R.map((r, i) => [r.id, i]));
+
+// ---------- 노이즈 ----------
+function hash(i, j, s) {
+  let h = (i * 374761393 + j * 668265263 + s * 2246822519) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s);
+  return (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v) * 2 - 1;
+}
+function fbm(x, y, s, oct = 5) {
+  let sum = 0, amp = 1, f = 1, norm = 0;
+  for (let o = 0; o < oct; o++) { sum += amp * vnoise(x * f, y * f, s + o * 17); norm += amp; amp *= 0.5; f *= 2.03; }
+  return sum / norm;
+}
+let seed = 1209;
+const rand = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+
+// ---------- 거리장 ----------
+const polys = LAND.map(pts => {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  return { pts, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+});
+function sdPoly(P, x, y) {
+  const M = 140;
+  if (x < P.x0 - M || x > P.x1 + M || y < P.y0 - M || y > P.y1 + M) return -M;
+  const pts = P.pts; let inside = false, dmin = 1e9;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i], [xj, yj] = pts[j];
+    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    const dx = xj - xi, dy = yj - yi, t = Math.max(0, Math.min(1, ((x - xi) * dx + (y - yi) * dy) / (dx * dx + dy * dy)));
+    const ex = xi + t * dx - x, ey = yi + t * dy - y, d = ex * ex + ey * ey;
+    if (d < dmin) dmin = d;
+  }
+  const d = Math.min(Math.sqrt(dmin), M);
+  return inside ? d : -d;
+}
+const field = new Float32Array(NX * NY);
+const owner = new Int8Array(NX * NY);
+const bestD = new Float32Array(NX * NY), secD = new Float32Array(NX * NY);
+const warpX = new Float32Array(NX * NY), warpY = new Float32Array(NX * NY);
+
+for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
+  const x = i * CELL, y = j * CELL, k = i + j * NX;
+  let v = -140;
+  for (const P of polys) v = Math.max(v, sdPoly(P, x, y));
+  for (const [cx, cy, r] of ISLANDS) v = Math.max(v, r - Math.hypot(x - cx, y - cy));
+  v += fbm(x / 95, y / 95, 3) * 30 + fbm(x / 22, y / 22, 9, 3) * 6;
+  for (const [cx, cy, rx, ry] of LAKES) {
+    const e = Math.hypot((x - cx) / rx, (y - cy) / ry);
+    if (e < 2.2) v = Math.min(v, (e - 1) * Math.min(rx, ry) + fbm(x / 14, y / 14, 41, 2) * 4);
+  }
+  field[k] = v;
+  const wx = x + fbm(x / 130 + 3.1, y / 130, 21, 4) * 46, wy = y + fbm(x / 130, y / 130 + 7.7, 23, 4) * 46;
+  warpX[k] = wx; warpY[k] = wy;
+  let b = 1e9, s2 = 1e9, bi = 0;
+  for (let r = 0; r < R.length; r++) {
+    let d = 1e9;
+    for (const [sx, sy] of R[r].seeds) d = Math.min(d, Math.hypot(wx - sx, wy - sy));
+    if (d < b) { s2 = b; b = d; bi = r; } else if (d < s2) s2 = d;
+  }
+  owner[k] = bi; bestD[k] = b; secD[k] = s2;
+}
+const at = (x, y) => { const i = Math.round(x / CELL), j = Math.round(y / CELL); return i < 0 || j < 0 || i >= NX || j >= NY ? -1 : i + j * NX; };
+const isLand = (x, y, m = 3) => { const k = at(x, y); return k >= 0 && field[k] > m; };
+const regionAt = (x, y) => { const k = at(x, y); return k >= 0 ? R[owner[k]].id : null; };
+
+const geo = d3.geoPath(d3.geoIdentity().scale(CELL).translate([-CELL / 2, -CELL / 2]));
+const contour = (vals, t) => geo(d3.contours().size([NX, NY]).thresholds([t])(vals)[0]);
+const regionPath = r => {
+  const vals = new Float32Array(NX * NY);
+  for (let k = 0; k < vals.length; k++) {
+    let d = 1e9;
+    for (const [sx, sy] of R[r].seeds) d = Math.min(d, Math.hypot(warpX[k] - sx, warpY[k] - sy));
+    vals[k] = (owner[k] === r ? secD[k] : bestD[k]) - d;
+  }
+  return contour(vals, 0);
+};
+
+// ---------- SVG 그리기 ----------
+const svg = document.getElementById("map");
+const el = (tag, attrs = {}, parent = svg, text) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [a, v] of Object.entries(attrs)) n.setAttribute(a, v);
+  if (text != null) n.textContent = text;
+  parent.appendChild(n); return n;
+};
+const coastD = contour(field, 0);
+
+// 종이 결 무늬
+const grain = document.createElement("canvas"); grain.width = grain.height = 256;
+const gx = grain.getContext("2d"), img = gx.createImageData(256, 256);
+for (let p = 0; p < img.data.length; p += 4) { const v = rand(); img.data[p] = img.data[p + 1] = img.data[p + 2] = v > .5 ? 255 : 0; img.data[p + 3] = Math.floor(Math.abs(v - .5) * 70); }
+gx.putImageData(img, 0, 0);
+
+const defs = el("defs");
+const rg = el("radialGradient", { id: "seaGrad", cx: "42%", cy: "40%", r: "75%" }, defs);
+el("stop", { offset: "0%", "stop-color": "#1a2c4a" }, rg);
+el("stop", { offset: "65%", "stop-color": "#112038" }, rg);
+el("stop", { offset: "100%", "stop-color": "#08111f" }, rg);
+el("path", { d: coastD }, el("clipPath", { id: "landClip" }, defs));
+const pat = el("pattern", { id: "grain", width: 256, height: 256, patternUnits: "userSpaceOnUse" }, defs);
+el("image", { href: grain.toDataURL(), width: 256, height: 256 }, pat);
+const hatch = el("pattern", { id: "iceHatch", width: 14, height: 14, patternUnits: "userSpaceOnUse", patternTransform: "rotate(-24)" }, defs);
+el("line", { x1: 0, y1: 7, x2: 7, y2: 7, stroke: "#8ea3bb", "stroke-width": 1.2, "stroke-opacity": .55 }, hatch);
+
+// 바다
+el("rect", { x: -2000, y: -2000, width: W + 4000, height: H + 4000, fill: "#08111f" });
+el("rect", { width: W, height: H, fill: "url(#seaGrad)" });
+el("rect", { width: W, height: H, fill: "url(#grain)", opacity: .35 });
+const gDepth = el("g", { id: "g-depth" });
+[[-70, .05], [-46, .07], [-26, .09], [-11, .12]].forEach(([t, o]) =>
+  el("path", { d: contour(field, t), fill: "#5f86bf", "fill-opacity": o, stroke: "var(--depth-line)", "stroke-width": 1.2, "stroke-opacity": .8 }, gDepth));
+
+// 땅과 나라
+const gLand = el("g", { "clip-path": "url(#landClip)" });
+el("rect", { width: W, height: H, fill: "#6d6a62" }, gLand);
+const regionD = R.map((r, i) => regionPath(i));
+const terrEls = {};
+R.forEach((r, i) => {
+  terrEls[r.id] = el("path", { d: regionD[i], fill: r.color, "fill-opacity": .86, class: "terr", "data-id": r.id, tabindex: -1 }, gLand);
+});
+const iceIdx = RI.ice;
+el("path", { d: regionD[iceIdx], fill: "url(#iceHatch)", "pointer-events": "none" }, gLand);
+el("rect", { width: W, height: H, fill: "url(#grain)", opacity: .5, "pointer-events": "none" }, gLand);
+// 해안 쪽으로 살짝 어두워지는 안쪽 테두리
+el("path", { d: coastD, fill: "none", stroke: "#0b1424", "stroke-width": 14, "stroke-opacity": .28, "pointer-events": "none" }, gLand);
+
+const gBorders = el("g", { id: "g-borders", "clip-path": "url(#landClip)", "pointer-events": "none" });
+R.forEach((r, i) => el("path", { d: regionD[i], fill: "none", stroke: "#f3e6c4", "stroke-width": 1.6, "stroke-opacity": .55, "stroke-dasharray": "7 5" }, gBorders));
+const selPath = el("path", { d: "", fill: "none", stroke: "var(--gilt)", "stroke-width": 4, "clip-path": "url(#landClip)", "pointer-events": "none" });
+
+// 해안선
+el("path", { d: coastD, fill: "none", stroke: "var(--gilt)", "stroke-width": 1.8, "stroke-opacity": .9, "pointer-events": "none" });
+
+// 지형: 산맥, 숲, 사막, 강
+const gRelief = el("g", { id: "g-relief", "pointer-events": "none" });
+function along(pts, step) {
+  const out = [];
+  for (let s = 0; s < pts.length - 1; s++) {
+    const [x0, y0] = pts[s], [x1, y1] = pts[s + 1], L = Math.hypot(x1 - x0, y1 - y0), n = Math.max(1, Math.round(L / step));
+    for (let t = 0; t < n; t++) out.push([x0 + (x1 - x0) * t / n, y0 + (y1 - y0) * t / n]);
+  }
+  out.push(pts[pts.length - 1]); return out;
+}
+const RIDGES = [
+  { ko: "기간테스 산맥", pts: mapA([[150,285],[220,280],[290,282],[360,275],[430,272],[500,278],[570,270],[630,262]]), lab: A(390,258), rot: -2 },
+  { ko: "드래건 브레스 산맥", pts: mapA([[80,280],[100,320],[110,360],[125,400]]), lab: A(68,345), rot: 72, volcano: true },
+  { ko: "오스킬 산맥", pts: mapA([[318,330],[326,370],[322,410],[334,450]]), lab: A(342,410), rot: 82 },
+  { ko: "드래곤 스파인 산맥", pts: mapA([[228,440],[232,485],[236,530]]), lab: A(214,492), rot: 86 },
+  { ko: "마솔 산맥", pts: mapA([[640,295],[636,335],[628,375],[634,420]]), lab: A(655,368), rot: 84 },
+];
+const peaks = [];
+RIDGES.forEach(rg => along(rg.pts, 15).forEach(([x, y]) => {
+  for (let n = 0; n < 2; n++) {
+    const px = x + (rand() - .5) * 22, py = y + (rand() - .5) * 20;
+    if (isLand(px, py, 6)) peaks.push([px, py, 10 + rand() * 9, rg.volcano && rand() < .25]);
+  }
+}));
+peaks.sort((a, b) => a[1] - b[1]).forEach(([x, y, s, volc]) => {
+  const h = s * 1.15;
+  el("path", { d: `M${x - s},${y} L${x},${y - h} L${x + s},${y} Z`, fill: "#e9dfc6", "fill-opacity": .9 }, gRelief);
+  el("path", { d: `M${x},${y - h} L${x + s},${y} L${x + s * .15},${y} Z`, fill: "#5b5248", "fill-opacity": .85 }, gRelief);
+  el("path", { d: `M${x - s},${y} L${x},${y - h} L${x + s},${y}`, fill: "none", stroke: "#2c2620", "stroke-width": 1.4, "stroke-linejoin": "round" }, gRelief);
+  if (volc) el("circle", { cx: x, cy: y - h - 3, r: 3, fill: "#e0703f" }, gRelief);
+});
+// 숲 (커티스, 다갈)
+[["cutis", A(370,340), 120], ["dagal", A(600,330), 70]].forEach(([id, [cx, cy], rad]) => {
+  for (let n = 0; n < 420; n++) {
+    const x = cx + (rand() - .5) * rad * 2, y = cy + (rand() - .5) * rad * 1.3;
+    if (!isLand(x, y, 8) || regionAt(x, y) !== id) continue;
+    if (peaks.some(p => Math.abs(p[0] - x) < 14 && Math.abs(p[1] - y) < 16)) continue;
+    el("path", { d: `M${x - 5},${y} a5,5 0 1,1 10,0 Z`, fill: "#2f5a3b", "fill-opacity": .85 }, gRelief);
+  }
+});
+// 사막 점묘 (트리시스)
+{ const [cx, cy] = A(285,505);
+  for (let n = 0; n < 900; n++) {
+    const x = cx + (rand() - .5) * 220, y = cy + (rand() - .5) * 220;
+    if (isLand(x, y, 6) && regionAt(x, y) === "trisis") el("circle", { cx: x, cy: y, r: .9 + rand() * 1.4, fill: "#7a5f37", "fill-opacity": .55 }, gRelief);
+  } }
+// 강
+const line = d3.line().curve(d3.curveCatmullRom.alpha(.5));
+const RIVERS = [
+  { ko: "갈리온 강", pts: mapA([[335,372],[380,371],[430,381],[466,382]]) },
+  { ko: "아시탄 강", pts: mapA([[478,394],[470,425],[455,455],[445,476]]) },
+  { ko: "이린 강", pts: mapA([[502,394],[520,430],[522,462],[520,478]]) },
+  { ko: "비온디나 강", pts: mapA([[514,376],[555,395],[590,430],[612,450]]) },
+  { ko: "소드 강", pts: mapA([[222,445],[214,500],[206,550],[190,600]]) },
+];
+const gRivers = el("g", { "clip-path": "url(#landClip)" }, gRelief);
+RIVERS.forEach(rv => {
+  const pts = rv.pts.map(([x, y]) => [x + fbm(x / 30, y / 30, 51, 2) * 6, y + fbm(x / 30, y / 30, 53, 2) * 6]);
+  el("path", { d: line(pts), fill: "none", stroke: "#7fa6d6", "stroke-width": 2.6, "stroke-linecap": "round" }, gRivers);
+});
+
+// 항로와 필라트 라인
+const gRoutes = el("g", { id: "g-routes", "pointer-events": "none" });
+{ const [cx, cy] = E(468, 228), rx = 82 * 2.79, ry = 92 * 2.79, pts = [];
+  for (let a = 15; a <= 290; a += 6) { const t = a * Math.PI / 180, j = 1 + fbm(a / 30, 1, 61, 2) * .09; pts.push([cx + Math.cos(t) * rx * j, cy + Math.sin(t) * ry * j]); }
+  el("path", { d: line(pts), fill: "none", stroke: "#e07a5f", "stroke-width": 2.4, "stroke-dasharray": "2 9", "stroke-linecap": "round", "stroke-opacity": .9 }, gRoutes);
+  const [lx, ly] = E(468, 326);
+  el("text", { x: lx, y: ly, "font-size": 19, class: "lbl-small", "text-anchor": "middle", style: "fill:#f0a68f" }, gRoutes, "필라트 라인");
+}
+{ const pts = [A(565,548), E(300,262), E(330,296), E(380,272), E(415,290), E(447,300)];
+  el("path", { d: line(pts), fill: "none", stroke: "var(--gilt)", "stroke-width": 2.2, "stroke-dasharray": "12 8", "stroke-opacity": .85 }, gRoutes);
+  const [lx, ly] = E(352, 252);
+  el("text", { x: lx, y: ly, "font-size": 17, class: "lbl-small", "text-anchor": "middle" }, gRoutes, "1209년 라르고·페넬로 항로");
+}
+
+// 지명: 산맥, 호수, 도시
+const gLabels = el("g", { id: "g-labels" });
+RIDGES.forEach(rg => { const [x, y] = rg.lab; el("text", { x, y, "font-size": 17, class: "lbl-feat", "text-anchor": "middle", transform: `rotate(${rg.rot} ${x} ${y})`, "letter-spacing": "0.25em" }, gRelief, rg.ko); });
+{ const [x, y] = A(490, 404); el("text", { x, y, "font-size": 15, class: "lbl-feat", "text-anchor": "middle" }, gRelief, "알케오니아 호수"); }
+{ const [x, y] = A(255, 600); el("text", { x, y, "font-size": 13, class: "lbl-feat", "text-anchor": "end" }, gRelief, "사이럽스 호수"); }
+const STAR = (x, y, r) => Array.from({ length: 10 }, (_, i) => { const a = (i * 36 - 90) * Math.PI / 180, rr = i % 2 ? r * .45 : r; return `${x + Math.cos(a) * rr},${y + Math.sin(a) * rr}`; }).join(" ");
+Object.entries(TOWNS).forEach(([id, t]) => {
+  const [x, y] = t.pos, g = el("g", { "data-town": id, style: "cursor:pointer" }, gLabels);
+  el("circle", { cx: x, cy: y, r: 20, fill: "#000", "fill-opacity": 0 }, g);
+  if (t.star) el("polygon", { points: STAR(x, y, 11), fill: "var(--gilt)", stroke: "#1a1410", "stroke-width": 1.5 }, g);
+  else el("circle", { cx: x, cy: y, r: 5, fill: "#f3e6c4", stroke: "#1a1410", "stroke-width": 2 }, g);
+  const left = t.side ? t.side === "left" : x < A(250, 0)[0];
+  el("text", { x: left ? x - 14 : x + 10, y: y + 5, "font-size": t.star ? 18 : 15, class: "lbl-small", "text-anchor": left ? "end" : "start", style: t.star ? "font-weight:600" : "" }, g, t.ko);
+});
+// 나라 이름
+R.forEach(r => {
+  const [x, y] = r.label, s = r.size;
+  el("text", { x, y, "font-size": s, class: "lbl-ko", "text-anchor": "middle" }, gLabels, r.ko);
+  el("text", { x, y: y + s * .62, "font-size": Math.max(12, s * .44), class: "lbl-en", "text-anchor": "middle" }, gLabels, (r.sub ? r.sub + " · " : "") + r.en);
+});
+// 바다 이름 (누를 수 있음)
+const gSea = el("g", { id: "g-sea" });
+[["isgard", E(372,150), -64, 26], ["merman", E(232,318), 0, 26], ["unknown", [80, 700], -90, 24], ["great", E(560,430), 0, 28]].forEach(([id, [x, y], rot, s]) => {
+  const g = el("g", { transform: `rotate(${rot} ${x} ${y})`, "data-sea": id, style: "cursor:pointer" }, gSea);
+  el("text", { x, y, "font-size": s, class: "lbl-sea-ko", "text-anchor": "middle" }, g, SEAS[id].ko);
+  el("text", { x, y: y + s * .9, "font-size": s * .62, class: "lbl-sea", "text-anchor": "middle" }, g, SEAS[id].en.toUpperCase());
+});
+
+// 장식: 나침반, 표제, 테두리
+{ const cx = 1900, cy = 580, g = el("g", { "pointer-events": "none" });
+  el("circle", { cx, cy, r: 92, fill: "none", stroke: "var(--gilt-soft)", "stroke-width": 1.2 }, g);
+  el("circle", { cx, cy, r: 82, fill: "none", stroke: "var(--gilt-soft)", "stroke-width": .8, "stroke-dasharray": "2 4" }, g);
+  for (let a = 0; a < 360; a += 45) {
+    const long = a % 90 === 0, L = long ? 110 : 60, w = long ? 13 : 9, t = (a - 90) * Math.PI / 180;
+    const tip = [cx + Math.cos(t) * L, cy + Math.sin(t) * L], l = [cx + Math.cos(t - Math.PI / 2) * w, cy + Math.sin(t - Math.PI / 2) * w], rr = [cx + Math.cos(t + Math.PI / 2) * w, cy + Math.sin(t + Math.PI / 2) * w];
+    el("path", { d: `M${cx},${cy} L${l} L${tip} Z`, fill: "#e8d3a0", "fill-opacity": long ? .95 : .6 }, g);
+    el("path", { d: `M${cx},${cy} L${rr} L${tip} Z`, fill: "#6f5a33", "fill-opacity": long ? .95 : .6 }, g);
+  }
+  el("text", { x: cx, y: cy - 122, "font-size": 26, class: "lbl-en", "text-anchor": "middle", style: "letter-spacing:0" }, g, "N");
+}
+{ const g = el("g", { "pointer-events": "none" });
+  el("text", { x: 1880, y: 140, "font-size": 64, class: "lbl-en", "text-anchor": "middle", style: "letter-spacing:.3em" }, g, "ANTARIA");
+  el("line", { x1: 1700, y1: 162, x2: 2060, y2: 162, stroke: "var(--gilt-soft)", "stroke-width": 1 }, g);
+  el("text", { x: 1880, y: 196, "font-size": 22, class: "lbl-feat", "text-anchor": "middle", "letter-spacing": "0.4em" }, g, "안타리아 행성 전도");
+}
+el("rect", { x: 10, y: 10, width: W - 20, height: H - 20, fill: "none", stroke: "var(--gilt-soft)", "stroke-width": 2, "pointer-events": "none" });
+el("rect", { x: 20, y: 20, width: W - 40, height: H - 40, fill: "none", stroke: "var(--gilt-soft)", "stroke-width": .8, "pointer-events": "none" });
+
+// ---------- 패널 ----------
+const panel = document.getElementById("panel");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const factsHTML = f => f.length ? `<dl class="facts">${f.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>` : "";
+function indexHTML() {
+  const groups = Object.entries(BLOCS).map(([b, info]) => {
+    const items = R.filter(r => r.bloc === b);
+    const seen = new Set();
+    return `<div><h3>${info.name}</h3><div class="rows">${items.filter(r => !seen.has(r.ko + r.sub) && seen.add(r.ko + r.sub)).map(r =>
+      `<button class="row" data-go="${r.id}"><span class="sw" style="background:${r.color}"></span>${esc(r.ko)}${r.sub ? " " + esc(r.sub) : ""}</button>`).join("")}</div></div>`;
+  });
+  groups.push(`<div><h3>도시</h3><div class="rows">${Object.entries(TOWNS).map(([id, t]) =>
+    `<button class="row" data-town-go="${id}"><span class="sw" style="background:var(--gilt)"></span>${esc(t.ko)}</button>`).join("")}</div></div>`);
+  groups.push(`<div><h3>바다</h3><div class="rows">${Object.entries(SEAS).map(([id, s]) =>
+    `<button class="row" data-sea-go="${id}"><span class="sw" style="background:#3f5f8f"></span>${esc(s.ko)}</button>`).join("")}</div></div>`);
+  return `<div class="index">${groups.join("")}</div>`;
+}
+function showHome() {
+  selPath.setAttribute("d", "");
+  panel.innerHTML = `<div class="p-head"><span class="p-en">THE PLANET ANTARIA</span><h2 class="p-ko">안타리아 행성</h2></div>
+  <p class="p-body">'모든 인간의 발길이 닿은 모든 대지'라는 뜻. 좁게는 팬드래건과 게이시르가 있는 안타리아 대륙을, 넓게는 투르·한 제국의 동방 대륙까지 아우르는 창세기전 3의 무대 전체를 가리킵니다.</p>
+  ${factsHTML([["태양", "쌍성계 (창세기전 2 엔딩곡 가사)"], ["공전 / 자전", "220일 / 43시간 50분"], ["기축 통화", "ELD"], ["높이 단위", "1 마라트 = 6 m"], ["대륙 크기", "안타리아 대륙은 유럽쯤으로 추정"]])}
+  ${indexHTML()}`;
+}
+function showRegion(id) {
+  const r = R[RI[id]], b = BLOCS[r.bloc];
+  selPath.setAttribute("d", regionD[RI[id]]);
+  panel.innerHTML = `<button class="back" data-home>← 전체 목록</button>
+  <div class="p-head"><span class="p-en">${esc(r.en.toUpperCase())}</span><h2 class="p-ko">${esc(r.ko)}${r.sub ? ` <small style="font-size:.6em;color:var(--muted)">${esc(r.sub)}</small>` : ""}</h2>
+  <span class="bloc" style="color:${b.color}">${esc(b.name)}</span></div>
+  <p class="p-body">${esc(r.body)}</p>${factsHTML(r.facts)}`;
+}
+function showTown(id) {
+  const t = TOWNS[id], b = BLOCS[t.bloc];
+  selPath.setAttribute("d", "");
+  panel.innerHTML = `<button class="back" data-home>← 전체 목록</button>
+  <div class="p-head"><span class="p-en">${esc(t.en.toUpperCase())}</span><h2 class="p-ko">${esc(t.ko)}</h2>
+  <span class="bloc" style="color:${b.color}">${esc(t.kind || "도시")} · ${esc(b.name)}</span></div>
+  <p class="p-body">${esc(t.body)}</p>${factsHTML(t.facts)}
+  <p style="margin:0;font-size:12px;color:var(--muted)">지도 위 점은 설정 문장을 바탕으로 짐작한 위치입니다.</p>`;
+}
+function showSea(id) {
+  const s = SEAS[id];
+  selPath.setAttribute("d", "");
+  panel.innerHTML = `<button class="back" data-home>← 전체 목록</button>
+  <div class="p-head"><span class="p-en">${esc(s.en.toUpperCase())}</span><h2 class="p-ko">${esc(s.ko)}</h2>
+  <span class="bloc" style="color:#8fa6c9">바다</span></div>
+  <p class="p-body">${esc(s.body)}</p>${factsHTML(s.facts)}`;
+}
+panel.addEventListener("click", e => {
+  const t = e.target.closest("[data-go],[data-sea-go],[data-town-go],[data-home]"); if (!t) return;
+  if (t.dataset.townGo) { showTown(t.dataset.townGo); flyTo(TOWNS[t.dataset.townGo].pos, () => ping(TOWNS[t.dataset.townGo].pos)); } else if (t.dataset.go) showRegion(t.dataset.go); else if (t.dataset.seaGo) showSea(t.dataset.seaGo); else showHome();
+});
+showHome();
+
+// ---------- 검색 ----------
+const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const chosung = str => [...str].map(c => { const k = c.charCodeAt(0) - 0xAC00; return k >= 0 && k < 11172 ? CHO[Math.floor(k / 588)] : c; }).join("");
+const norm = str => str.toLowerCase().replace(/\s+/g, "");
+const PLACES = [
+  ...Object.entries(TOWNS).map(([id, t]) => ({ ko: t.ko, en: t.en, kind: t.kind || "도시", pos: t.pos, open: () => showTown(id) })),
+  ...R.map(r => ({ ko: r.ko + (r.sub ? " " + r.sub : ""), en: r.en, kind: r.bloc === "wild" ? "지역" : "나라", pos: r.label, open: () => showRegion(r.id) })),
+  ...Object.entries(SEAS).map(([id, s]) => ({ ko: s.ko, en: s.en, kind: "바다", pos: ({ isgard: E(372,150), merman: E(232,318), unknown: [80, 700], great: E(560,430) })[id], open: () => showSea(id) })),
+  ...RIDGES.map(rg => ({ ko: rg.ko, en: "", kind: "산맥", pos: rg.pts[Math.floor(rg.pts.length / 2)] })),
+  ...RIVERS.map(rv => ({ ko: rv.ko, en: "", kind: "강", pos: rv.pts[Math.floor(rv.pts.length / 2)] })),
+  { ko: "알케오니아 호수", en: "Archeonia Lake", kind: "호수", pos: A(490, 380) },
+  { ko: "사이럽스 호수", en: "", kind: "호수", pos: A(272, 585) },
+  { ko: "필라트 라인", en: "Pilat Line", kind: "해역", pos: E(468, 320), open: () => showSea("isgard") },
+];
+PLACES.forEach(p => { p.nko = norm(p.ko); p.cho = chosung(p.nko); p.nen = norm(p.en); });
+const KIND_ORDER = ["도시", "감옥", "나라", "지역", "바다", "해역", "산맥", "호수", "강"];
+function searchPlaces(q) {
+  const n = norm(q);
+  if (!n) return PLACES.filter(p => p.kind === "도시" || p.kind === "감옥");
+  const isCho = /^[ㄱ-ㅎ]+$/.test(n);
+  return PLACES.map(p => {
+    let score = -1, hit = -1;
+    if ((hit = p.nko.indexOf(n)) >= 0) score = hit === 0 ? 3 : 2;
+    else if (isCho && (hit = p.cho.indexOf(n)) >= 0) score = hit === 0 ? 2.5 : 1.5, hit = -1;
+    else if (p.nen && p.nen.includes(n)) score = 1;
+    return { p, score, hit };
+  }).filter(r => r.score >= 0)
+    .sort((a, b) => b.score - a.score || KIND_ORDER.indexOf(a.p.kind) - KIND_ORDER.indexOf(b.p.kind) || a.p.ko.localeCompare(b.p.ko, "ko"))
+    .slice(0, 8);
+}
+const q = document.getElementById("q"), list = document.getElementById("suggest"), qclear = document.getElementById("qclear");
+let results = [], active = -1;
+function hl(p, raw) {
+  const n = norm(raw); if (!n) return esc(p.ko);
+  // 공백을 무시하고 맞은 글자 범위를 원래 이름 위에 표시
+  const map = []; [...p.ko].forEach((c, i) => { if (!/\s/.test(c)) map.push(i); });
+  const at = p.nko.indexOf(n); if (at < 0) return esc(p.ko);
+  const a = map[at], b = map[at + n.length - 1] + 1;
+  return esc(p.ko.slice(0, a)) + "<mark>" + esc(p.ko.slice(a, b)) + "</mark>" + esc(p.ko.slice(b));
+}
+function renderList() {
+  results = searchPlaces(q.value).map(r => r.p || r);
+  active = results.length ? 0 : -1;
+  list.innerHTML = results.length
+    ? results.map((p, i) => `<li role="option" id="opt-${i}" data-i="${i}" aria-selected="${i === active}"><span class="s-ko">${hl(p, q.value)}</span>${p.en ? `<span class="s-en">${esc(p.en)}</span>` : ""}<span class="s-kind">${p.kind}</span></li>`).join("")
+    : `<li class="s-empty">'${esc(q.value)}'에 맞는 지명이 없습니다. 초성(ㄹㅇㅇ)이나 영어 이름으로도 찾을 수 있습니다.</li>`;
+  list.hidden = false; q.setAttribute("aria-expanded", "true");
+  q.setAttribute("aria-activedescendant", active >= 0 ? "opt-" + active : "");
+  qclear.hidden = !q.value;
+}
+function setActive(i) {
+  if (!results.length) return;
+  active = (i + results.length) % results.length;
+  list.querySelectorAll("li[role=option]").forEach((li, k) => li.setAttribute("aria-selected", k === active));
+  q.setAttribute("aria-activedescendant", "opt-" + active);
+  list.querySelector(`#opt-${active}`)?.scrollIntoView({ block: "nearest" });
+}
+const closeList = () => { list.hidden = true; q.setAttribute("aria-expanded", "false"); };
+function choose(p) {
+  q.value = p.ko; qclear.hidden = false; closeList();
+  if (p.open) p.open();
+  flyTo(p.pos, () => ping(p.pos));
+}
+q.addEventListener("input", renderList);
+q.addEventListener("focus", renderList);
+q.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown") { e.preventDefault(); list.hidden ? renderList() : setActive(active + 1); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+  else if (e.key === "Enter") { e.preventDefault(); if (active >= 0) choose(results[active]); }
+  else if (e.key === "Escape") { closeList(); }
+});
+list.addEventListener("mousedown", e => e.preventDefault());
+list.addEventListener("click", e => { const li = e.target.closest("li[data-i]"); if (li) choose(results[+li.dataset.i]); });
+q.addEventListener("blur", () => setTimeout(closeList, 120));
+qclear.addEventListener("click", () => { q.value = ""; qclear.hidden = true; clearPing(); q.focus(); });
+
+// ---------- 레이어 토글 ----------
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+  const on = c.getAttribute("aria-pressed") !== "true";
+  c.setAttribute("aria-pressed", on);
+  document.getElementById(c.dataset.layer).classList.toggle("off", !on);
+}));
+
+// ---------- 확대/이동 ----------
+const FULL = { x: 0, y: 0, w: W, h: H };
+let vb = { ...FULL };
+const setVB = v => {
+  const w = Math.max(320, Math.min(W, v.w)), h = w * H / W;
+  vb = { w, h, x: Math.max(0, Math.min(W - w, v.x)), y: Math.max(0, Math.min(H - h, v.y)) };
+  svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+};
+const zoomAt = (f, cx, cy) => setVB({ w: vb.w / f, x: cx - (cx - vb.x) / f, y: cy - (cy - vb.y) / f });
+const toWorld = (clientX, clientY) => { const b = svg.getBoundingClientRect(); return [vb.x + (clientX - b.left) / b.width * vb.w, vb.y + (clientY - b.top) / b.height * vb.h]; };
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let flyRaf = 0;
+function flyTo([cx, cy], done) {
+  cancelAnimationFrame(flyRaf);
+  const w1 = Math.min(vb.w, 760), h1 = w1 * H / W;
+  const from = { ...vb }, to = { w: w1, x: cx - w1 / 2, y: cy - h1 / 2 };
+  if (reduceMotion) { setVB(to); return done(); }
+  const t0 = performance.now(), dur = 750, ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / dur), k = ease(t);
+    setVB({ w: from.w + (to.w - from.w) * k, x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k });
+    if (t < 1) flyRaf = requestAnimationFrame(step); else done();
+  };
+  flyRaf = requestAnimationFrame(step);
+}
+const gPing = el("g", { id: "g-ping", "pointer-events": "none" });
+let pingTimer = 0;
+function clearPing() { clearTimeout(pingTimer); gPing.replaceChildren(); }
+function ping([x, y]) {
+  clearPing();
+  const k = vb.w / svg.getBoundingClientRect().width, r = 16 * k;
+  ["r1", "r2", "r3"].forEach(c => el("circle", { cx: x, cy: y, r, fill: "none", stroke: "var(--gilt)", "stroke-width": 3 * k, class: "ping-ring " + c }, gPing));
+  el("circle", { cx: x, cy: y, r: 4.5 * k, fill: "var(--gilt)", stroke: "#1a1410", "stroke-width": 1.5 * k }, gPing);
+  const ph = 34 * k, pw = 12 * k, top = y - 8 * k - ph;
+  const pin = el("g", { class: "ping-pin" }, gPing);
+  el("path", { d: `M${x},${y - 8 * k} C${x - pw * .3},${top + ph * .62} ${x - pw},${top + ph * .5} ${x - pw},${top + pw} A${pw},${pw} 0 1,1 ${x + pw},${top + pw} C${x + pw},${top + ph * .5} ${x + pw * .3},${top + ph * .62} ${x},${y - 8 * k} Z`, fill: "#e07a5f", stroke: "#1a1410", "stroke-width": 1.6 * k }, pin);
+  el("circle", { cx: x, cy: top + pw, r: pw * .42, fill: "#f3e6c4" }, pin);
+  // 6초 동안 부앙부앙 움직인 뒤 핀만 남김
+  pingTimer = setTimeout(() => gPing.querySelectorAll(".ping-ring").forEach(n => n.remove()), 6000);
+}
+const startView = () => svg.getBoundingClientRect().width < 640 ? { x: 110, y: 40, w: 940 } : FULL;
+setVB(startView());
+document.getElementById("zin").onclick = () => zoomAt(1.4, vb.x + vb.w / 2, vb.y + vb.h / 2);
+document.getElementById("zout").onclick = () => zoomAt(1 / 1.4, vb.x + vb.w / 2, vb.y + vb.h / 2);
+document.getElementById("zreset").onclick = () => setVB(FULL);
+svg.addEventListener("wheel", e => { e.preventDefault(); const [x, y] = toWorld(e.clientX, e.clientY); zoomAt(Math.exp(-e.deltaY * .0015), x, y); }, { passive: false });
+
+const ptrs = new Map(); let moved = 0, pinch0 = null;
+svg.addEventListener("pointerdown", e => { ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; svg.setPointerCapture(e.pointerId); svg.classList.add("dragging"); if (ptrs.size === 2) pinch0 = null; });
+svg.addEventListener("pointermove", e => {
+  if (!ptrs.has(e.pointerId)) return;
+  const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  const b = svg.getBoundingClientRect();
+  if (ptrs.size === 1) {
+    const dx = e.clientX - prev[0], dy = e.clientY - prev[1]; moved += Math.abs(dx) + Math.abs(dy);
+    setVB({ ...vb, x: vb.x - dx / b.width * vb.w, y: vb.y - dy / b.height * vb.h });
+  } else if (ptrs.size === 2) {
+    const [p, q] = [...ptrs.values()], d = Math.hypot(p[0] - q[0], p[1] - q[1]);
+    if (pinch0) { const [x, y] = toWorld((p[0] + q[0]) / 2, (p[1] + q[1]) / 2); zoomAt(d / pinch0, x, y); }
+    pinch0 = d; moved = 99;
+  }
+});
+const endPtr = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = null; if (!ptrs.size) svg.classList.remove("dragging"); };
+svg.addEventListener("pointerup", endPtr); svg.addEventListener("pointercancel", endPtr);
+svg.addEventListener("click", e => {
+  if (moved > 6) return;
+  const hit = document.elementFromPoint(e.clientX, e.clientY) || e.target;
+  const town = hit.closest("[data-town]");
+  if (town) { showTown(town.dataset.town); return ping(TOWNS[town.dataset.town].pos); }
+  const sea = hit.closest("[data-sea]");
+  if (sea) return showSea(sea.dataset.sea);
+  const t = hit.closest(".terr");
+  if (t) showRegion(t.dataset.id);
+});
+})();
+</script>
