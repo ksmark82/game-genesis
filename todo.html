@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서풍의 광시곡 — 진행 중인 내용</title>
+<meta name="description" content="놓치면 안 되는 아이템, 하다 만 일, 나중에 챙길 일">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root {
+  --ink: #0b0f17; --panel: #121926; --line: #243149;
+  --text: #e9e2d0; --muted: #95a0b5; --gold: #e2c27a; --gold-dim: #9c8556;
+  --font-display: "Gowun Batang", "Nanum Myeongjo", "Batang", serif;
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--ink); color: var(--text); }
+body { font-family: var(--font-ui); font-size: 16px; line-height: 1.7; }
+a { color: var(--gold); text-underline-offset: 3px; }
+a:hover { color: #f3dca4; }
+.top { position: sticky; top: 0; z-index: 5; background: rgba(11, 15, 23, .94); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.top nav { max-width: 1180px; margin: 0 auto; padding: 10px 16px; display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: center; font-size: 14px; }
+.top nav a { color: var(--muted); text-decoration: none; white-space: nowrap; }
+.top nav a:hover, .top nav a[aria-current="page"] { color: var(--gold); }
+.top nav .home { font-family: var(--font-display); font-weight: 700; color: var(--text); margin-right: 8px; }
+
+.layout { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
+.toc { position: sticky; top: 64px; max-height: calc(100vh - 80px); overflow-y: auto; font-size: 13px; border-left: 1px solid var(--line); padding-left: 12px; }
+.toc summary { cursor: pointer; color: var(--muted); font-weight: 600; letter-spacing: .06em; list-style: none; margin-bottom: 6px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.toc a { color: var(--muted); text-decoration: none; display: block; line-height: 1.4; word-break: keep-all; }
+.toc a:hover, .toc a.on { color: var(--gold); }
+@media (max-width: 900px) { .toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; } }
+article { min-width: 0; max-width: 78ch; word-break: keep-all; overflow-wrap: anywhere; }
+article hr + h2 { border-top: 0; margin-top: 0; }
+article h1 { font-family: var(--font-display); font-size: clamp(26px, 4vw, 36px); line-height: 1.25; margin: 0 0 16px; text-wrap: balance; }
+article h2 { font-family: var(--font-display); font-size: 24px; line-height: 1.3; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); scroll-margin-top: 64px; }
+article h3 { font-size: 17px; margin: 28px 0 8px; color: var(--gold); scroll-margin-top: 64px; }
+article p, article ul, article ol { margin: 0 0 12px; }
+article ul, article ol { padding-left: 1.3em; }
+article li { margin: 3px 0; }
+article li > ul { margin: 4px 0 0; }
+article strong { color: #fff4dc; font-weight: 600; }
+article blockquote { margin: 0 0 20px; padding: 10px 14px; border-left: 3px solid var(--gold-dim); background: var(--panel); border-radius: 0 6px 6px 0; color: var(--muted); }
+article blockquote p { margin: 4px 0; }
+article blockquote strong { color: var(--gold); }
+article hr { border: 0; border-top: 1px solid var(--line); margin: 32px 0; }
+article code { font-size: .9em; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+.tbl { overflow-x: auto; margin: 0 0 16px; border: 1px solid var(--line); border-radius: 6px; }
+article table { border-collapse: collapse; width: 100%; font-size: 14px; }
+article th, article td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+article th { background: var(--panel); color: var(--gold); font-weight: 600; white-space: nowrap; }
+article tr:last-child td { border-bottom: 0; }
+/* 소설은 읽기 좋게: 명조 글꼴, 넓은 줄 간격, 좁은 폭 */
+.novel article { max-width: 36em; margin: 0 auto; font-family: var(--font-display); font-size: 18px; line-height: 1.95; }
+.novel article p { margin: 0 0 1.1em; }
+.novel article h2 { text-align: center; border-top: 0; margin-top: 72px; }
+.novel article hr { width: 40%; margin: 40px auto; }
+.foot { color: var(--muted); font-size: 13px; margin-top: 48px; }
+</style>
+</head>
+<body class="">
+<header class="top"><nav aria-label="문서 목록"><a class="home" href="index.html">서풍의 광시곡 플레이 기록</a><a href="story.html">스토리 흐름</a><a href="clues.html">떡밥 정리</a><a href="todo.html" aria-current="page">진행 중인 내용</a><a href="shops.html">상점 정리</a><a href="novel.html">소설</a><a href="map-atlas/">지도첩</a><a href="antaria-map.html">안타리아 전도</a></nav></header>
+<div class="layout">
+  <aside class="toc"><details open><summary>목차</summary><ol></ol></details></aside>
+  <article><p style="color:var(--muted)">불러오는 중…</p></article>
+</div>
+<script id="md" type="application/json">"# 서풍의 광시곡 — 진행 중인 내용\n\n> **현재 진행 시점**: 프리토리아 (2차 — 포로 구출 임무) 영주 저택(옛 라몬 저택) 1·2층 탐색\n>\n> 하다가 만 일, 나중에 챙길 일을 적어 둔다. 끝나면 지우지 말고 ✅ 표시하고 어디서 끝냈는지 적는다.\n\n---\n\n## ⚠️ 포로 구출 임무 동안 꼭 챙길 것 (놓치면 못 얻음)\n\n- 지금(포로 구출 임무 중)이 **구 제국령을 가장 자유롭게 돌아다닐 수 있는 때**다. 이 임무가 끝나면 한동안 제국령을 마음대로 못 다닌다.\n- 그래서 아래 것들을 **이 임무가 끝나기 전에** 다 얻어 둔다. (출처: [디시 — 중반 이후 돈복사 루트](https://m.dcinside.com/board/warofgenesis/138514), 나무위키)\n\n| 얻을 것 | 어디서 | 메모 |\n|---|---|---|\n| ~~피닉스의 알~~ ✅ (소환수 피닉스, 화염 마법) | 프리토리아 산 피닉스의 동굴 | 포로 구출 임무 중에 얻음 |\n| **크림슨 헬카이트** (소환수) | **게이시르 숲 화룡굴** | 사이럽스에서 들은 \"화룡산의 용\" 소문과 이어지는 곳 |\n| **썬더메어** (전격 소환수) | **리브레빌 투기장** 안쪽 던전 | **딱 한 번만** 들어갈 수 있다. 들어가면 꼭 얻고 나온다 |\n| **유성검** | **로우엔 동굴(유성검 던전)** | 로우엔 근처 산에 칼이 박혀 있다는 소문이 이것으로 보인다 |\n| **멸살지옥검** | **마검숲** (로우엔~보르도 사이) | 보르도가 목적지라 가는 길에 들르기 좋다 |\n| ~~롱기누스의 창~~ ✅ | 제피르 팰컨 기지 비밀 던전 | 기지 4차(포로 구출 출발 전)에 얻음 |\n\n### 🔸 라몬 저택 지하의 잠긴 문 세 개 — 열지 말 것\n- 프리토리아 라몬 저택 지하에 잠긴 문이 세 개 있는데, **만능 열쇠로 열어도 아무것도 없다.** 원래부터 장식이다. 열쇠를 아낀다. ([디시](https://m.dcinside.com/board/warofgenesis/138296))\n\n### 🔸 보르도 주점의 개구리 상점\n- 보르도 **주점에 앉은 녹색 개구리**에게 **열 번** 말을 걸면 상점을 열어 준다.\n- **클레이모어를 26,000**에 판다. 가장 싸다. 카라카스 검 연구회에 **52,000**에 되팔 수 있어 두 배 장사다.\n- 상점을 **5번, 10번, 15번** 열 때마다 공짜 무기를 준다: 파랑스(창), 자동소총, 암흑검. 그 뒤로는 상점만 열린다.\n- 돈 불리기 루트: 유성검 던전 오른쪽 아래 끝 NPC에게 **다이아몬드잼을 20,000**에 산다 → 로우엔 액세서리점에 26,000에 판다 → 보르도 개구리에게 클레이모어를 산다 → 카라카스 검 연구회에 판다.\n\n---\n\n## 할 일\n\n### 🔸 다이아몬드잼 팔기\n- 지금 갈 수 있는 상점에서는 팔지 말고, 비싸게 사 주는 곳까지 들고 간다.\n\n| 파는 곳 | 값 (개당) |\n|---|---|\n| **리브레빌** | **30,000** — 가장 비싸다 |\n| 로우엔 액세서리점 | 26,000 |\n\n- 둘 다 리마스터에서 확인된 값이다. (출처: [디시 창세기전 갤러리 — 중반 이후 돈복사 루트](https://m.dcinside.com/board/warofgenesis/138514))\n- 리브레빌과 로우엔 중 먼저 들르는 곳에서 팔면 된다. 리브레빌이 4,000엘드 더 쳐 주니 금방 갈 수 있으면 리브레빌로 간다.\n- **유성검 던전** 오른쪽 아래 끝 NPC가 다이아몬드잼을 **20,000**에 판다. 사서 되팔면 남는다. (→ 위 \"보르도 주점의 개구리 상점\" 돈 불리기 루트 참고)\n- 게이시르 시티 병사 퀘스트(10바퀴 돌기)로 다이아몬드잼을 더 얻을 수 있다. (→ `상점_정리.md` \"게이시르 시티\" 참고)\n\n### 🔸 돈 모아서 해적키드 상점에서 클레이모어 사기\n- **해적키드의 비밀상점**: 제피르 팰컨 기지를 나와 작전 방향 반대쪽(왼쪽) 동굴. 첫 갈림길에서 오른쪽, 다음 갈림길에서 왼쪽 끝. (→ 지도첩 \"해적키드의 동굴 가는 길\" 참고)\n- 클레이모어 값은 4만 엘드가 안 된다(원작 기준). 다른 데서는 돈으로 살 수 있는 검 중 가장 비싼 검이다.\n- **보르도 개구리 상점이 26,000으로 더 싸다.** 보르도에 갈 거라면 거기서 사는 게 낫다. (→ 위 \"보르도 주점의 개구리 상점\" 참고)\n- 상점은 **딱 3번만** 열 수 있다. 돈을 넉넉히 모은 뒤에 가야 한 번에 많이 산다.\n- 돈 모으는 법 (→ `상점_정리.md` \"지금 할 만한 돈벌이\" 참고)\n  - 카라카스 무기점 총 상인에게 라이플(1,350)을 사서 검 연구회에 1,500에 판다. 밑천이 생기면 자동소총으로 갈아탄다.\n  - 제피르 팰컨 기지 병사에게 기관소총을 사서 카라카스 검 연구회에 판다.\n- 쓰고 남는 클레이모어는 카라카스 검 연구회에 **52,000**에 팔 수 있다. 여러 자루 사 두면 그 자체로 돈벌이가 된다.\n- 간 김에 미스릴탄, 불의 문장(에스메랄다용), 완전 회복약도 같이 사 둔다.\n\n### ✅ 제피르 팰컨 기지 비밀 던전에서 롱기누스의 창 얻기 — 기지 4차(포로 구출 출발 전)에 얻음\n- **창 계열 최강 무기.** 제피르 팰컨에 들어간 뒤로는 언제든 갈 수 있다.\n- 가는 길: 작전회의실(클라우제비츠 있는 방)에서 **오른쪽** → 술집을 지나 더 오른쪽으로 가면 비밀 던전 입구. 던전을 따라 **북동쪽 끝**에 창이 있다. (기지에서 들은 \"벽 뒤로 빨려 들어간 사람\" 소문이 이 던전 얘기로 보인다.)\n- 잠긴 보물상자가 많으니 **만능 열쇠를 여러 개** 챙겨 간다.\n- 몬스터가 아주 세다. 적갈색 '발 없는 기사'는 한 대에 천몇백씩 깎는다. 레벨이 낮으면 부스트를 켜거나 레벨을 올린 뒤 간다. 잡을 수만 있으면 한 파티에 경험치 800이라 레벨 올리기엔 최고다.\n- 출처: [tali.kr — 제피르팰컨 비밀던전 롱기누스의 창](https://tali.kr/2548), [디시 — 9장 섭퀘+비밀던전 가는 길](https://m.dcinside.com/board/warofgenesis/137888)\n\n### 🔸 기지에 올 때마다 보르스 옆 서랍 누르기 (서브 퀘스트 \"비밀의 서랍\")\n- 제피르 팰컨 작전회의실의 **보르스 옆 서랍**을 누르면 보르스가 손대지 말라고 한다.\n- 이야기가 진행되면서 **기지에 들를 때마다 한 번씩 꼭 눌러 둔다.** 한 번이라도 빠뜨리면 마지막 이벤트가 안 열릴 수 있다. (리마스터 확인: [디시 — 보르스 서랍 열기](https://m.dcinside.com/board/warofgenesis/139202))\n- 서랍을 실제로 열 수 있는 건 **한참 뒤**, 보르스가 자리에 없을 때다. 그때 열지 말지 고를 수 있다.\n- 누른 시점 기록\n  - 제피르 팰컨 기지 3차 (니코시아 정탐 직후) — ❓ 누르셨으면 알려 주세요\n  - 제피르 팰컨 기지 4차 (안타나나리보 구출 직후) — ❓ 이번에도 눌러 주세요\n"</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+const md = document.getElementById("md").textContent;
+const art = document.querySelector("article");
+const slug = s => s.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+if (window.marked) {
+  // 한국어는 **"…"**의 처럼 굵은 글씨 바로 뒤에 조사가 붙으면 marked가 굵게 처리하지 못해서 먼저 바꿔 둔다
+  const src = JSON.parse(md).replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, "<strong>$1</strong>");
+  art.innerHTML = marked.parse(src);
+} else {
+  // 글자 라이브러리를 못 받아 오면 원문 그대로 보여 준다
+  const pre = document.createElement("pre"); pre.style.whiteSpace = "pre-wrap"; pre.textContent = JSON.parse(md); art.replaceChildren(pre);
+}
+art.querySelectorAll("table").forEach(t => { const w = document.createElement("div"); w.className = "tbl"; t.before(w); w.append(t); });
+art.querySelectorAll("a[href^='http']").forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+const used = new Set();
+const heads = [...art.querySelectorAll("h2, h3")];
+heads.forEach(h => { let id = slug(h.textContent) || "s"; while (used.has(id)) id += "-"; used.add(id); h.id = id; });
+const toc = document.querySelector(".toc ol");
+const tocHeads = heads.filter(h => h.tagName === "H2" || heads.filter(x => x.tagName === "H2").length < 6);
+toc.innerHTML = tocHeads.map(h => `<li><a href="#${h.id}" style="padding-left:${h.tagName === "H3" ? 12 : 0}px">${h.textContent.replace(/[<>&]/g, "")}</a></li>`).join("");
+if (!tocHeads.length) document.querySelector(".toc").hidden = true;
+if (matchMedia("(max-width: 900px)").matches) document.querySelector(".toc details").open = false;
+if (location.hash) { const t = document.getElementById(decodeURIComponent(location.hash.slice(1))); if (t) t.scrollIntoView(); }
+// 지금 읽는 곳을 목차에 표시
+const links = Object.fromEntries([...toc.querySelectorAll("a")].map(a => [a.getAttribute("href").slice(1), a]));
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting && links[e.target.id]) { toc.querySelectorAll(".on").forEach(x => x.classList.remove("on")); links[e.target.id].classList.add("on"); } }), { rootMargin: "-70px 0px -70% 0px" });
+tocHeads.forEach(h => io.observe(h));
+</script>
+</body>
+</html>
