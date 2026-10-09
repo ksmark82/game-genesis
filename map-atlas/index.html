@@ -270,9 +270,16 @@ function search(q) {
     if (s >= 0) hits.push({ e, s: s + (e.tx != null ? 0 : e.label === null ? .2 : .1) });
   }
   hits.sort((a, b) => b.s - a.s || a.e.text.length - b.e.text.length);
-  // 같은 지도의 같은 이름은 한 번만 (띄어쓰기·표기만 다른 그림 글자도 같은 이름으로 본다)
-  const seen = new Set();
-  return hits.filter(h => { const k = h.e.m.id + "|" + h.e.n; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 60);
+  // 지도 한 장은 목록에 한 번만. 가장 잘 맞은 이름을 대표로 두고, 같은 지도에서 함께 걸린 이름은 more에 모은다
+  // (띄어쓰기·표기만 다른 그림 글자도 같은 이름으로 본다)
+  const byMap = new Map();
+  for (const h of hits) {
+    const top = byMap.get(h.e.m.id);
+    if (!top) { byMap.set(h.e.m.id, { ...h, more: [], seen: new Set([h.e.n]) }); continue; }
+    if (top.seen.has(h.e.n)) continue;
+    top.seen.add(h.e.n); top.more.push(h.e.text);
+  }
+  return [...byMap.values()].slice(0, 60);
 }
 
 // ---------- 목록 ----------
@@ -298,8 +305,8 @@ function renderList() {
     return;
   }
   if (!res.length) { list.innerHTML = `<p class="empty">'${esc(raw)}'이(가) 적힌 지도가 없습니다. 초성(ㄹㅂㄹㅂ)이나 더 짧은 이름으로 찾아 보세요.</p>`; return; }
-  list.innerHTML = `<div class="group"><h2>찾은 곳 · ${res.length}</h2><ul>${res.map(({ e }) =>
-    `<li><button class="item" data-map="${e.m.id}" ${e.label !== null ? `data-label="${e.label}"` : ""} ${e.tx != null ? `data-tx="${e.tx}"` : ""}><span class="t">${hl(e.text, raw)}</span><span class="k">${e.tx != null ? "그림 글자" : e.label === null ? "지도" : "지명"}</span><span class="m">${esc(e.m.t)} · ${G[e.m.g]}</span></button></li>`).join("")}</ul></div>`;
+  list.innerHTML = `<div class="group"><h2>찾은 지도 · ${res.length}</h2><ul>${res.map(({ e, more }) =>
+    `<li><button class="item" data-map="${e.m.id}" ${e.label !== null ? `data-label="${e.label}"` : ""} ${e.tx != null ? `data-tx="${e.tx}"` : ""}><span class="t">${hl(e.text, raw)}</span><span class="k">${e.tx != null ? "그림 글자" : e.label === null ? "지도" : "지명"}</span><span class="m">${esc(e.m.t)} · ${G[e.m.g]}${more.length ? ` · 함께 찾은 이름: ${more.slice(0, 3).map(t => hl(t, raw)).join(", ")}${more.length > 3 ? ` 외 ${more.length - 3}` : ""}` : ""}</span></button></li>`).join("")}</ul></div>`;
 }
 list.addEventListener("click", e => {
   const b = e.target.closest(".item"); if (!b) return;
