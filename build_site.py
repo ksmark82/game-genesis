@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """md 문서를 웹문서(html)로 바꾸고, 저장소 첫 화면(index.html)을 만든다.
 
-md 파일이 원본이다. md를 고친 뒤 이 스크립트를 다시 돌리면 html이 따라 바뀐다.
+docs/ 안의 md 파일이 원본이다. md를 고친 뒤 이 스크립트를 다시 돌리면 html이 따라 바뀐다.
     python3 build_site.py
 """
 import datetime
@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+SRC = ROOT / "docs"  # 원본 md가 있는 곳
 
 # (원본 md, 만들 html, 첫 화면에 보일 이름, 한 줄 설명, 소설처럼 읽기 좋은 모양으로 할지)
 DOCS = [
@@ -153,7 +154,7 @@ def now_point(md):
 
 
 def build_doc(src, out, name, desc, novel):
-    md = (ROOT / src).read_text(encoding="utf-8")
+    md = (SRC / src).read_text(encoding="utf-8")
     title = first_title(md) or name
     # </script> 가 본문에 있어도 깨지지 않게 JSON으로 넣는다
     data = json.dumps(md, ensure_ascii=False).replace("</", "<\\/")
@@ -196,7 +197,7 @@ def build_index(built):
     point = now_point(story_md)
     cards = []
     for src, out, name, desc, _ in DOCS:
-        cards.append(f'<a class="card" href="{out}"><span class="n">{name}</span><span class="d">{desc}</span><span class="f">원본: {src}</span></a>')
+        cards.append(f'<a class="card" href="{out}"><span class="n">{name}</span><span class="d">{desc}</span><span class="f">원본: docs/{src}</span></a>')
     extra = [f'<a class="card" href="{href}"><span class="n">{name}</span><span class="d">{desc}</span></a>' for href, name, desc in EXTRA]
     today = datetime.date.today().isoformat()
     page = head("서풍의 광시곡 플레이 기록", "창세기전 외전 서풍의 광시곡 리마스터 플레이 기록 모음", INDEX_CSS) + f"""
